@@ -1,4 +1,4 @@
-from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
+from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
 
 
 class Core:
@@ -7,15 +7,10 @@ class Core:
     """
 
     def __init__(self,
-                 task='classification',
-                 num_classes=2,
-                 time_steps=50,
-                 vocab_size=20000,
-                 embedding_dim=300,
-                 trainable_embeddings=False,
                  lstm_units_size=256,
                  hidden_units_size=256,
                  dropout_rate=0.1,
+                 recurrent_dropout_rate=0.1,
                  optimizer='adam',
                  loss=None,
                  metrics=None,
@@ -27,13 +22,6 @@ class Core:
                  weights_file='weights.hdf5',
                  log_file='history.csv'
                  ):
-
-        self._task = task,
-        self._num_classes = num_classes
-        self._time_steps = time_steps
-        self._vocab_size = vocab_size
-        self._embedding_dim = embedding_dim
-        self._trainable_embeddings = trainable_embeddings
 
         if type(lstm_units_size) is list:
             self._lstm_units_size = lstm_units_size
@@ -55,13 +43,8 @@ class Core:
                 "(Architectures without this kind of layer ignore this parameter)")
 
         self._dropout_rate = dropout_rate
+        self._recurrent_dropout_rate = recurrent_dropout_rate
         self._optimizer = optimizer
-
-        if loss is None:
-            if task == 'classification':
-                loss = 'categorical_crossentropy'
-            elif task == 'regression':
-                loss = 'mse'
         self._loss = loss
 
         if metrics is None:

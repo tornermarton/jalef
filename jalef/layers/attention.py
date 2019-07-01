@@ -1,9 +1,10 @@
-from keras import backend as K
-from keras.backend import int_shape
-from keras.layers import Layer, Permute, Dense, Lambda, RepeatVector, Multiply
+from tensorflow.python.keras import backend as K
+from tensorflow.python.keras import Model
+from tensorflow.python.keras.backend import int_shape
+from tensorflow.python.keras.layers import Permute, Dense, Lambda, RepeatVector, Multiply
 
 
-class AttentionBlock(Layer):
+class AttentionBlock(Model):
 
     def __init__(self, use_shared_attention_vector=True, **kwargs):
         self.shared_attention_vector = use_shared_attention_vector

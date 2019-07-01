@@ -1,11 +1,11 @@
-from keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed, Concatenate
-from keras.models import Model
+from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed, Concatenate
+from tensorflow.python.keras.models import Model
 
-from .core import Core
+from .nlp_model import NLPModel
 from jalef.layers.attention import AttentionBlock
 
 
-class Seq2Seq(Core):
+class Seq2Seq(NLPModel):
 
     def __init__(self,
                  target_vocab_size=20000,
@@ -43,24 +43,25 @@ class Seq2Seq(Core):
 
         if source_embedding_matrix is None:
             encoder_embedding = \
-                Embedding(self._vocab_size, self._embedding_dim, trainable=self._trainable_embeddings,
-                          name='encoder_embeddings')(self._encoder_inputs)
+                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim,
+                          trainable=self._trainable_embeddings, name='encoder_embeddings')(self._encoder_inputs)
         else:
             encoder_embedding = \
-                Embedding(self._vocab_size, self._embedding_dim, weights=[source_embedding_matrix],
+                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[source_embedding_matrix],
                           trainable=self._trainable_embeddings, name='encoder_embeddings')(self._encoder_inputs)
 
         if self._bidirectional_encoder:
             self._encoder_outputs, forward_h, forward_c, backward_h, backward_c = \
-                Bidirectional(LSTM(units=self._lstm_units_size[0], return_sequences=True, return_state=True),
+                Bidirectional(LSTM(units=self._lstm_units_size[0], return_sequences=True, return_state=True,
+                                   dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate),
                               name='encoder_LSTM')(encoder_embedding)
 
             encoder_h = Concatenate()([forward_h, backward_h])
             encoder_c = Concatenate()([forward_c, backward_c])
         else:
             self._encoder_outputs, encoder_h, encoder_c = \
-                LSTM(units=self._lstm_units_size[0], return_sequences=True, return_state=True, name='encoder_LSTM')(
-                    encoder_embedding)
+                LSTM(units=self._lstm_units_size[0], return_sequences=True, return_state=True, name='encoder_LSTM',
+                     dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate)(encoder_embedding)
 
         self._encoder_states = [encoder_h, encoder_c]
 
@@ -70,22 +71,24 @@ class Seq2Seq(Core):
 
         if target_embedding_matrix is None:
             self._decoder_embeddings = \
-                Embedding(self._vocab_size, self._embedding_dim, trainable=self._trainable_embeddings,
-                          name='decoder_embeddings')(self._decoder_inputs)
+                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim,
+                          trainable=self._trainable_embeddings, name='decoder_embeddings')(self._decoder_inputs)
         else:
             self._decoder_embeddings = \
-                Embedding(self._target_vocab_size, self._embedding_dim, trainable=self._trainable_embeddings,
-                          weights=[target_embedding_matrix], name='decoder_embeddings')(self._decoder_inputs)
+                Embedding(input_dim=self._target_vocab_size, output_dim=self._embedding_dim,
+                          trainable=self._trainable_embeddings,weights=[target_embedding_matrix],
+                          name='decoder_embeddings')(self._decoder_inputs)
 
         n_units = self._lstm_units_size[0]
 
         if self._bidirectional_encoder:
             n_units *= 2  # outputs are concatenated
 
-        self._decoder_lstm = LSTM(units=n_units, return_sequences=True, return_state=True,
-                                  name='decoder_LSTM')
+        self._decoder_lstm = LSTM(units=n_units, return_sequences=True, return_state=True, dropout=self._dropout_rate,
+                                  recurrent_dropout=self._recurrent_dropout_rate, name='decoder_LSTM')
 
-        self._decoder_outputs, _, _ = self._decoder_lstm(inputs=self._decoder_embeddings, initial_state=self._encoder_states)
+        self._decoder_outputs, _, _ = self._decoder_lstm(inputs=self._decoder_embeddings,
+                                                         initial_state=self._encoder_states)
 
         self._decoder_attention = AttentionBlock(use_shared_attention_vector=self._use_shared_attention_vector,
                                                  name='decoder_attention')
