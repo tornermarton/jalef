@@ -1,11 +1,11 @@
 from keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed, Concatenate
 from keras.models import Model
 
-from jalef.models.core import Model as CoreModel
+from .core import Core
 from jalef.layers.attention import AttentionBlock
 
 
-class Seq2Seq(CoreModel):
+class Seq2Seq(Core):
 
     def __init__(self,
                  target_vocab_size=20000,
