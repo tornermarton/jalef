@@ -19,6 +19,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'tensorflow'
+        'tensorflow==1.14.0', 'bert-tensorflow', 'tensorflow-hub', 'numpy', 'keras', 'gensim'
     ],
 )
