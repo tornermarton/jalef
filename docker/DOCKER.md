@@ -1,7 +1,17 @@
 # Docker configs for JALEF
 
-## Start tensorflow 2.0 container with jupyter notebook
+## Build container
 
-'''
-docker run -it --name 'tf-jupyter' -p 8888:8888 -p 6006:6006 -v $(pwd)/notebooks:/notebooks -v $(pwd)/data:/data tensorflow/tensorflow:latest-py3-jupyter /bin/bash -c 'source /etc/bash.bashrc && jupyter notebook --notebook-dir=/notebooks --ip 0.0.0.0 --no-browser --allow-root'
-'''
+```bash
+# IN PROJECT ROOT!!!
+
+docker build -t tornermarton/tf-jupyter -f docker/Dockerfile .
+```
+
+## Run container
+
+```bash
+./docker_run.sh
+#OR
+docker run --name 'tf-jupyter' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter
+```

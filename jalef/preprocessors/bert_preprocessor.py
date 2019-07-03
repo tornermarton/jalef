@@ -2,7 +2,6 @@ import tensorflow_hub as hub
 import tensorflow as tf
 from bert.tokenization import FullTokenizer
 import numpy as np
-from keras.utils import to_categorical
 
 from jalef.preprocessors.preprocessor import Preprocessor
 
@@ -93,5 +92,5 @@ class BertPreprocessor(Preprocessor):
 
         return (
             [np.array(input_ids), np.array(input_masks), np.array(segment_ids)],
-            to_categorical(labels),
+            tf.keras.utils.to_categorical(labels),
         )
