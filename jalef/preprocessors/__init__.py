@@ -1,1 +1,2 @@
 from .bert_preprocessor import BertPreprocessor
+from .word2vec_preprocessor import Word2VecPreprocessor
