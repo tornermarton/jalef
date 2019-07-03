@@ -47,4 +47,4 @@ class Word2VecPreprocessor(Preprocessor):
 
         sequences = pad_sequences(sequences=sequences, maxlen=self._max_seq_len)
 
-        return sequences, to_categorical(labels)
+        return np.array(sequences), to_categorical(labels)

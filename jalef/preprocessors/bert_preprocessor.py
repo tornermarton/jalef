@@ -91,6 +91,6 @@ class BertPreprocessor(Preprocessor):
             labels.append(label)
 
         return (
-            [np.array(input_ids), np.array(input_masks), np.array(segment_ids)],
+            np.array([np.array(input_ids), np.array(input_masks), np.array(segment_ids)]),
             tf.keras.utils.to_categorical(labels),
         )
