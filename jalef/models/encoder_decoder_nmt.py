@@ -12,6 +12,7 @@ class EncoderDecoderNMT(NLPModel):
                  use_attention=True,
                  use_shared_attention_vector=True,
                  bidirectional_encoder=True,
+                 embedding_matrix=None,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -20,15 +21,16 @@ class EncoderDecoderNMT(NLPModel):
         self._use_attention = use_attention
         self._use_shared_attention_vector = use_shared_attention_vector
         self._bidirectional_encoder = bidirectional_encoder
+        self._embedding_matrix = embedding_matrix
 
-    def compile(self, embedding_matrix=None, **kwargs):
+    def _create_model(self):
         inputs = Input(shape=(self._time_steps,))
 
-        if embedding_matrix is None:
+        if self._embedding_matrix is None:
             # Assert that weights are trainable, because otherwise doesn't make sense
             x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, trainable=True)(inputs)
         else:
-            x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[embedding_matrix],
+            x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[self._embedding_matrix],
                           trainable=self._trainable_embeddings)(inputs)
 
         for i in range(self._n_lstm_layers):
@@ -53,5 +55,3 @@ class EncoderDecoderNMT(NLPModel):
         outputs = TimeDistributed(Dense(units=self._target_vocab_size, activation='softmax'))(x)
 
         self._model = Model(inputs, outputs)
-
-        self._compile(**kwargs)

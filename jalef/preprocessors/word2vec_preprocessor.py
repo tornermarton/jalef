@@ -45,6 +45,6 @@ class Word2VecPreprocessor(Preprocessor):
 
         sequences = self._tokenizer.texts_to_sequences(texts=texts)
 
-        sequences = pad_sequences(sequences=sequences, maxlen=self._max_seq_len)
+        sequences = pad_sequences(sequences=sequences, maxlen=self._max_seq_len, padding='post', truncating='post')
 
         return np.array(sequences), to_categorical(labels)

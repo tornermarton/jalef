@@ -1,7 +1,9 @@
+from abc import ABC
+
 from .core import Core
 
 
-class NLPModel(Core):
+class NLPModel(Core, ABC):
 
     def __init__(self,
                  time_steps=50,

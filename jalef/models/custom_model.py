@@ -2,7 +2,9 @@ from tensorflow.python.keras import Input
 from tensorflow.python.keras.layers import Embedding, Bidirectional, LSTM, Dense, Dropout
 from tensorflow.python.keras.models import Model
 
+from jalef.preprocessors import Word2VecPreprocessor
 from .nlp_model import NLPModel
+from jalef.layers import Bert
 
 
 class CustomModel(NLPModel):
@@ -11,10 +13,15 @@ class CustomModel(NLPModel):
     in the output layer will be equal to the num_classes parameter, if regression than 1.
     """
 
+    SUPPORTED_EMBEDDINGS = ["bert", "word2vec"]
+
     def __init__(self,
                  task="classification",
                  num_classes=2,
-                 bidirectional_lstm=True,
+                 use_pretrained_embeddings=False,
+                 embedding_type=None,
+                 embedding_model_path=None,
+                 use_bidirectional_lstm=False,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -23,20 +30,42 @@ class CustomModel(NLPModel):
 
         self._task = task
         self._num_classes = num_classes
-        self._bidirectional_lstm = bidirectional_lstm
 
-    def compile(self, embedding_matrix=None, **kwargs):
-        inputs = Input(shape=(self._time_steps,))
+        if use_pretrained_embeddings and (embedding_type is None or embedding_model_path is None):
+            raise ValueError("If you use pretrained embeddings please specify the type and the model path!")
 
-        if embedding_matrix is None:
+        self._use_pretrained_embeddings = use_pretrained_embeddings
+
+        if embedding_type not in CustomModel.SUPPORTED_EMBEDDINGS:
+            raise ValueError("Please use one type from CustomModel.SUPPORTED_EMBEDDINGS!")
+
+        self._embedding_type = embedding_type
+        self._embedding_model_path = embedding_model_path
+
+        self._use_bidirectional_lstm = use_bidirectional_lstm
+
+    def _create_model(self):
+        if not self._use_pretrained_embeddings:
+            inputs = Input(shape=(self._time_steps,))
             # Assert that weights are trainable, because otherwise doesn't make sense
             x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, trainable=True)(inputs)
         else:
-            x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[embedding_matrix],
-                          trainable=self._trainable_embeddings)(inputs)
+            if self._embedding_type == "bert":
+
+            elif self._embedding_type == "word2vec":
+                wp = Word2VecPreprocessor(max_sequence_length=self._time_steps, pretrained_model_path=self._embedding_model_path)
+
+                embedding_matrix = wp.get_embedding_matrix(self._embedding_dim)
+
+                inputs = Input(shape=(self._time_steps,))
+
+                x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[embedding_matrix],
+                              trainable=self._trainable_embeddings)(inputs)
+            else:
+                raise ValueError("Please use one type from CustomModel.SUPPORTED_EMBEDDINGS!")
 
         for i in range(self._n_lstm_layers):
-            if self._bidirectional_lstm:
+            if self._use_bidirectional_lstm:
                 x = Bidirectional(
                     LSTM(units=self._lstm_units_size[i], return_sequences=True, dropout=self._dropout_rate,
                          recurrent_dropout=self._recurrent_dropout_rate))(x)
@@ -56,5 +85,3 @@ class CustomModel(NLPModel):
             raise ValueError("Supported tasks are classification and regression!")
 
         self._model = Model(inputs=inputs, outputs=outputs)
-
-        self._compile(**kwargs)

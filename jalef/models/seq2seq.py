@@ -11,6 +11,8 @@ class Seq2Seq(NLPModel):
                  target_vocab_size=20000,
                  use_shared_attention_vector=True,
                  bidirectional_encoder=True,
+                 source_embedding_matrix=None,
+                 target_embedding_matrix=None,
                  **kwargs
                  ):
         super().__init__(**kwargs)
@@ -18,6 +20,9 @@ class Seq2Seq(NLPModel):
         self._target_vocab_size = target_vocab_size
         self._use_shared_attention_vector = use_shared_attention_vector
         self._bidirectional_encoder = bidirectional_encoder
+
+        self._source_embedding_matrix = source_embedding_matrix
+        self._target_embedding_matrix = target_embedding_matrix
 
         # Assigned at compilation
         self._encoder_inf_model = None
@@ -34,20 +39,18 @@ class Seq2Seq(NLPModel):
         self._decoder_dense = None
         self._decoder_outputs = None
 
-        return
-
-    def compile(self, source_embedding_matrix=None, target_embedding_matrix=None, **kwargs):
+    def _create_model(self):
         # Encoder
 
         self._encoder_inputs = Input(shape=(self._time_steps,), name='encoder_inputs')
 
-        if source_embedding_matrix is None:
+        if self._source_embedding_matrix is None:
             encoder_embedding = \
                 Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim,
                           trainable=self._trainable_embeddings, name='encoder_embeddings')(self._encoder_inputs)
         else:
             encoder_embedding = \
-                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[source_embedding_matrix],
+                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[self._source_embedding_matrix],
                           trainable=self._trainable_embeddings, name='encoder_embeddings')(self._encoder_inputs)
 
         if self._bidirectional_encoder:
@@ -69,14 +72,14 @@ class Seq2Seq(NLPModel):
 
         self._decoder_inputs = Input(shape=(self._time_steps,), name='decoder_inputs')
 
-        if target_embedding_matrix is None:
+        if self._target_embedding_matrix is None:
             self._decoder_embeddings = \
                 Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim,
                           trainable=self._trainable_embeddings, name='decoder_embeddings')(self._decoder_inputs)
         else:
             self._decoder_embeddings = \
                 Embedding(input_dim=self._target_vocab_size, output_dim=self._embedding_dim,
-                          trainable=self._trainable_embeddings,weights=[target_embedding_matrix],
+                          trainable=self._trainable_embeddings,weights=[self._target_embedding_matrix],
                           name='decoder_embeddings')(self._decoder_inputs)
 
         n_units = self._lstm_units_size[0]
@@ -100,8 +103,6 @@ class Seq2Seq(NLPModel):
         self._decoder_outputs = self._decoder_dense(self._decoder_outputs)
 
         self._model = Model(inputs=[self._encoder_inputs, self._decoder_inputs], outputs=[self._decoder_outputs])
-
-        self._compile(**kwargs)
 
     def create_inference_models(self, print_summary=False):
         # Encoder

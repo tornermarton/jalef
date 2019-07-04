@@ -1,7 +1,9 @@
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
 
+from abc import ABC, abstractmethod
 
-class Core:
+
+class Core(ABC):
     """
     The base for all models in this package.
     """
@@ -61,7 +63,13 @@ class Core:
 
         self._model = None
 
-    def _compile(self, print_summary=False):
+    @abstractmethod
+    def _create_model(self):
+        pass
+
+    def compile(self, print_summary=False):
+        self._create_model()
+
         self._model.compile(optimizer=self._optimizer, loss=self._loss, metrics=self._metrics)
 
         if print_summary:
