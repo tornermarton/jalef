@@ -40,6 +40,8 @@ class Word2VecPreprocessor(Preprocessor):
 
         del word_vectors
 
+        return embedding_matrix
+
     def run(self, texts, labels):
         self._tokenizer.fit_on_texts(texts=texts)
 
