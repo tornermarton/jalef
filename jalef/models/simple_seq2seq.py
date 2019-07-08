@@ -1,32 +1,22 @@
 from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed, Concatenate
 from tensorflow.python.keras.models import Model
 
-from .nlp_model import NLPModel
+from .engine import Seq2SeqCore
 from jalef.layers.attention import AttentionBlock
 
 
-class Seq2Seq(NLPModel):
-
+class SimpleSeq2Seq(Seq2SeqCore):
     def __init__(self,
-                 target_vocab_size=20000,
-                 use_shared_attention_vector=True,
-                 bidirectional_encoder=True,
-                 source_embedding_matrix=None,
-                 target_embedding_matrix=None,
-                 **kwargs
-                 ):
+                 n_lstm_units,
+                 dropout_rate,
+                 recurrent_dropout_rate,
+                 **kwargs):
+
         super().__init__(**kwargs)
 
-        self._target_vocab_size = target_vocab_size
-        self._use_shared_attention_vector = use_shared_attention_vector
-        self._bidirectional_encoder = bidirectional_encoder
-
-        self._source_embedding_matrix = source_embedding_matrix
-        self._target_embedding_matrix = target_embedding_matrix
-
-        # Assigned at compilation
-        self._encoder_inf_model = None
-        self._decoder_inf_model = None
+        self._n_lstm_units = n_lstm_units
+        self._dropout_rate = dropout_rate
+        self._recurrent_dropout_rate = recurrent_dropout_rate
 
         self._encoder_inputs = None
         self._encoder_states = None
@@ -39,23 +29,24 @@ class Seq2Seq(NLPModel):
         self._decoder_dense = None
         self._decoder_outputs = None
 
-    def _create_model(self):
+    def _construct_train_model(self, print_summary):
         # Encoder
 
         self._encoder_inputs = Input(shape=(self._time_steps,), name='encoder_inputs')
 
         if self._source_embedding_matrix is None:
             encoder_embedding = \
-                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim,
+                Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim,
                           trainable=self._trainable_embeddings, name='encoder_embeddings')(self._encoder_inputs)
         else:
             encoder_embedding = \
-                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[self._source_embedding_matrix],
+                Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim,
+                          weights=[self._source_embedding_matrix],
                           trainable=self._trainable_embeddings, name='encoder_embeddings')(self._encoder_inputs)
 
         if self._bidirectional_encoder:
             self._encoder_outputs, forward_h, forward_c, backward_h, backward_c = \
-                Bidirectional(LSTM(units=self._lstm_units_size[0], return_sequences=True, return_state=True,
+                Bidirectional(LSTM(units=self._n_lstm_units, return_sequences=True, return_state=True,
                                    dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate),
                               name='encoder_LSTM')(encoder_embedding)
 
@@ -63,7 +54,7 @@ class Seq2Seq(NLPModel):
             encoder_c = Concatenate()([forward_c, backward_c])
         else:
             self._encoder_outputs, encoder_h, encoder_c = \
-                LSTM(units=self._lstm_units_size[0], return_sequences=True, return_state=True, name='encoder_LSTM',
+                LSTM(units=self._n_lstm_units, return_sequences=True, return_state=True, name='encoder_LSTM',
                      dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate)(encoder_embedding)
 
         self._encoder_states = [encoder_h, encoder_c]
@@ -74,15 +65,15 @@ class Seq2Seq(NLPModel):
 
         if self._target_embedding_matrix is None:
             self._decoder_embeddings = \
-                Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim,
+                Embedding(input_dim=self._target_vocab_size, output_dim=self._embedding_dim,
                           trainable=self._trainable_embeddings, name='decoder_embeddings')(self._decoder_inputs)
         else:
             self._decoder_embeddings = \
                 Embedding(input_dim=self._target_vocab_size, output_dim=self._embedding_dim,
-                          trainable=self._trainable_embeddings,weights=[self._target_embedding_matrix],
+                          trainable=self._trainable_embeddings, weights=[self._target_embedding_matrix],
                           name='decoder_embeddings')(self._decoder_inputs)
 
-        n_units = self._lstm_units_size[0]
+        n_units = self._n_lstm_units
 
         if self._bidirectional_encoder:
             n_units *= 2  # outputs are concatenated
@@ -93,10 +84,11 @@ class Seq2Seq(NLPModel):
         self._decoder_outputs, _, _ = self._decoder_lstm(inputs=self._decoder_embeddings,
                                                          initial_state=self._encoder_states)
 
-        self._decoder_attention = AttentionBlock(use_shared_attention_vector=self._use_shared_attention_vector,
-                                                 name='decoder_attention')
+        if self._use_attention:
+            self._decoder_attention = AttentionBlock(use_shared_attention_vector=self._use_shared_attention_vector,
+                                                     name='decoder_attention')
 
-        self._decoder_outputs = self._decoder_attention(self._decoder_outputs)
+            self._decoder_outputs = self._decoder_attention(self._decoder_outputs)
 
         self._decoder_dense = TimeDistributed(Dense(units=self._target_vocab_size, activation='softmax'))
 
@@ -104,15 +96,15 @@ class Seq2Seq(NLPModel):
 
         self._model = Model(inputs=[self._encoder_inputs, self._decoder_inputs], outputs=[self._decoder_outputs])
 
-    def create_inference_models(self, print_summary=False):
+    def _construct_inference_model(self, print_summary):
         # Encoder
 
         self._encoder_inf_model = Model(inputs=self._encoder_inputs, outputs=self._encoder_states)
 
         # Decoder
 
-        decoder_state_input_h = Input(shape=(self._lstm_units_size[0],), name='decoder_inf_input_h')
-        decoder_state_input_c = Input(shape=(self._lstm_units_size[0],), name='decoder_inf_input_c')
+        decoder_state_input_h = Input(shape=(self._n_lstm_units,), name='decoder_inf_input_h')
+        decoder_state_input_c = Input(shape=(self._n_lstm_units,), name='decoder_inf_input_c')
 
         decoder_inf_states_input = [decoder_state_input_h, decoder_state_input_c]
 
@@ -121,11 +113,12 @@ class Seq2Seq(NLPModel):
 
         decoder_inf_states = [decoder_inf_h, decoder_inf_c]
 
-        decoder_inf_output = self._decoder_attention(decoder_inf_output)
+        if self._use_attention:
+            decoder_inf_output = self._decoder_attention(decoder_inf_output)
 
         decoder_inf_output = self._decoder_dense(decoder_inf_output)
 
-        self._decoder_inf_model = Model(inputs=[self._decoder_inputs]+decoder_inf_states_input,
+        self._decoder_inf_model = Model(inputs=[self._decoder_inputs] + decoder_inf_states_input,
                                         outputs=[decoder_inf_output] + decoder_inf_states)
 
         if print_summary:
@@ -133,3 +126,7 @@ class Seq2Seq(NLPModel):
             self._encoder_inf_model.summary()
             print("\nDecoder model:")
             self._decoder_inf_model.summary()
+
+    def predict(self, X):
+        # TODO: implement prediction
+        raise NotImplementedError()

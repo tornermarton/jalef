@@ -1,39 +1,34 @@
 from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed
 from tensorflow.python.keras.models import Model
 
-from .nlp_model import NLPModel
+from .engine import Seq2SeqCore, CustomLSTMModelCore
 from jalef.layers import AttentionBlock
 
 
-class EncoderDecoderNMT(NLPModel):
+class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
 
     def __init__(self,
-                 target_vocab_size=20000,
-                 use_attention=True,
-                 use_shared_attention_vector=True,
-                 bidirectional_encoder=True,
-                 embedding_matrix=None,
+                 dropout_rate,
+                 recurrent_dropout_rate,
                  **kwargs
                  ):
+
         super().__init__(**kwargs)
 
-        self._target_vocab_size = target_vocab_size
-        self._use_attention = use_attention
-        self._use_shared_attention_vector = use_shared_attention_vector
-        self._bidirectional_encoder = bidirectional_encoder
-        self._embedding_matrix = embedding_matrix
+        self._dropout_rate = dropout_rate
+        self._recurrent_dropout_rate = recurrent_dropout_rate
 
-    def _create_model(self):
+    def _construct_train_model(self, print_summary):
         inputs = Input(shape=(self._time_steps,))
 
-        if self._embedding_matrix is None:
+        if self._source_embedding_matrix is None:
             # Assert that weights are trainable, because otherwise doesn't make sense
-            x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, trainable=True)(inputs)
+            x = Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim, trainable=True)(inputs)
         else:
-            x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, weights=[self._embedding_matrix],
+            x = Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim, weights=[self._source_embedding_matrix],
                           trainable=self._trainable_embeddings)(inputs)
 
-        for i in range(self._n_lstm_layers):
+        for i in range(len(self._lstm_units_size)):
             if self._bidirectional_encoder:
                 x = Bidirectional(LSTM(units=self._lstm_units_size[i], return_sequences=True,
                                        dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate))(x)
@@ -44,7 +39,7 @@ class EncoderDecoderNMT(NLPModel):
         if self._use_attention:
             x = AttentionBlock(use_shared_attention_vector=self._use_shared_attention_vector, name='attention')(x)
 
-        for i in range(self._n_lstm_layers)[::-1]:
+        for i in range(len(self._lstm_units_size))[::-1]:
             n_units = self._lstm_units_size[i]
 
             if self._bidirectional_encoder:
@@ -55,3 +50,12 @@ class EncoderDecoderNMT(NLPModel):
         outputs = TimeDistributed(Dense(units=self._target_vocab_size, activation='softmax'))(x)
 
         self._model = Model(inputs, outputs)
+
+    def _construct_inference_model(self, print_summary):
+        # Here no inference model is needed
+        pass
+
+    def predict(self, X):
+        # TODO: implement prediction
+        raise NotImplementedError()
+
