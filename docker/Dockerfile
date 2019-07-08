@@ -6,8 +6,10 @@ SHELL ["/bin/bash", "-c"]
 WORKDIR /
 
 COPY requirements.txt /
+COPY requirements.system /
 
 RUN apt-get update && pip install --upgrade pip && mkdir /app/
+RUN xargs apt-get install < requirements.system
 RUN pip install --trusted-host pypi.python.org -r ../requirements.txt
 
 RUN apt-get install -y git
