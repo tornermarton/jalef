@@ -2,7 +2,6 @@ import gensim
 import numpy as np
 from tensorflow.python.keras.preprocessing.text import Tokenizer
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-from tensorflow.python.keras.utils import to_categorical
 
 from jalef.preprocessors.preprocessor import Preprocessor
 
@@ -21,8 +20,18 @@ class Word2VecPreprocessor(Preprocessor):
 
         self._tokenizer = Tokenizer(num_words=None, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~ ', lower=True, split=' ',)
 
-    def get_embedding_matrix(self, embedding_dimension):
-        word_vectors = gensim.models.KeyedVectors.load_word2vec_format(fname=self._pretrained_model_path, binary=True)
+    def fit(self, texts):
+        self._tokenizer.fit_on_texts(texts=texts)
+
+    def transform(self, texts):
+        sequences = self._tokenizer.texts_to_sequences(texts=texts)
+
+        sequences = pad_sequences(sequences=sequences, maxlen=self._max_seq_len, padding='post', truncating='post')
+
+        return np.array(sequences)
+
+    def get_embedding_matrix(self, embedding_dimension, pretrained_model_path):
+        word_vectors = gensim.models.KeyedVectors.load_word2vec_format(fname=pretrained_model_path, binary=True)
 
         word_index = self._tokenizer.word_index
 
@@ -41,12 +50,3 @@ class Word2VecPreprocessor(Preprocessor):
         del word_vectors
 
         return embedding_matrix
-
-    def run(self, texts, labels):
-        self._tokenizer.fit_on_texts(texts=texts)
-
-        sequences = self._tokenizer.texts_to_sequences(texts=texts)
-
-        sequences = pad_sequences(sequences=sequences, maxlen=self._max_seq_len, padding='post', truncating='post')
-
-        return np.array(sequences), to_categorical(labels)

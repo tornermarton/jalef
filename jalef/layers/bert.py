@@ -1,6 +1,8 @@
 import tensorflow as tf
 import tensorflow_hub as hub
 
+from enum import Enum, auto
+
 
 class Bert(tf.keras.layers.Layer):
     """
@@ -13,13 +15,16 @@ class Bert(tf.keras.layers.Layer):
     (Here we use the actual best as default - Whole Word Masking, uncased version)
     """
 
-    SUPPORTED_POOLING_TYPES = ["first", "reduce_mean"]
+    class Pooling(Enum):
+        FIRST = auto()
+        REDUCE_MEAN = auto()
+        ENCODER_OUT = auto()
 
     def __init__(self,
                  pretrained_model_path,
                  output_size,
+                 pooling,
                  n_layers_to_finetune=0,
-                 pooling="reduce_mean",
                  **kwargs):
 
         self._pretrained_model_path = pretrained_model_path
@@ -29,9 +34,9 @@ class Bert(tf.keras.layers.Layer):
         self._trainable = n_layers_to_finetune != 0
         self._n_layers_to_finetune = n_layers_to_finetune
 
-        if pooling not in Bert.SUPPORTED_POOLING_TYPES:
+        if pooling not in Bert.Pooling:
             raise NameError(
-                "Unsupported pooling type {}! Please use one from Bert.SUPPORTED_POOLING_TYPES.".format(pooling)
+                "Unsupported pooling type {}! Please use one from Bert.Pooling.".format(pooling)
             )
 
         self._pooling = pooling
@@ -47,11 +52,11 @@ class Bert(tf.keras.layers.Layer):
 
         # Remove unused layers
         trainable_vars = self._bert_module.variables
-        if self._pooling == "first":
+        if self._pooling == Bert.Pooling.FIRST:
             trainable_vars = [var for var in trainable_vars if "/cls/" not in var.name]
             trainable_layers = ["pooler/dense"]
 
-        elif self._pooling == "reduce_mean":
+        elif self._pooling == Bert.Pooling.REDUCE_MEAN or self._pooling == Bert.Pooling.ENCODER_OUT:
             trainable_vars = [
                 var
                 for var in trainable_vars
@@ -85,28 +90,36 @@ class Bert(tf.keras.layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
+        def mul_mask(x, m):
+            return x * tf.expand_dims(m, axis=-1)
+
+        def masked_reduce_mean(x, m):
+            return tf.reduce_sum(mul_mask(x, m), axis=1) / (tf.reduce_sum(m, axis=1, keepdims=True) + 1e-10)
+
         inputs = [tf.keras.backend.cast(x, dtype="int32") for x in inputs]
         input_ids, input_mask, segment_ids = inputs
         bert_inputs = dict(
             input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids
         )
-        if self._pooling == "first":
+
+        if self._pooling == Bert.Pooling.FIRST:
             pooled = self._bert_module(inputs=bert_inputs, signature="tokens", as_dict=True)[
                 "pooled_output"
             ]
-        elif self._pooling == "reduce_mean":
+        elif self._pooling == Bert.Pooling.REDUCE_MEAN:
             result = self._bert_module(inputs=bert_inputs, signature="tokens", as_dict=True)[
                 "sequence_output"
             ]
 
-            def mul_mask(x, m):
-                return x * tf.expand_dims(m, axis=-1)
-
-            def masked_reduce_mean(x, m):
-                return tf.reduce_sum(mul_mask(x, m), axis=1) / (tf.reduce_sum(m, axis=1, keepdims=True) + 1e-10)
-
             input_mask = tf.cast(input_mask, tf.float32)
             pooled = masked_reduce_mean(result, input_mask)
+
+        elif self._pooling == Bert.Pooling.ENCODER_OUT:
+            result = self._bert_module(inputs=bert_inputs, signature="tokens", as_dict=True)[
+                "sequence_output"
+            ]
+
+            pooled = mul_mask(result, input_mask)
         else:
             raise NameError(
                 "Unsupported pooling type {}! Please use one from Bert.SUPPORTED_POOLING_TYPES.".format(self._pooling)
