@@ -1,1 +1,1 @@
-docker run --name 'tf-jupyter' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter
+docker run -it --name 'tf-jupyter' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter bash -c "source /etc/bash.bashrc & jupyter notebook --notebook-dir=/app/notebooks --ip 0.0.0.0 --no-browser --allow-root"

@@ -1,0 +1,1 @@
+docker exec -it tf-jupyter bash -c "tensorboard --logdir=/app/logs/tensorboard/"
