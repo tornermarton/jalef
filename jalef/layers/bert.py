@@ -119,6 +119,7 @@ class Bert(tf.keras.layers.Layer):
                 "sequence_output"
             ]
 
+            input_mask = tf.cast(input_mask, tf.float32)
             pooled = mul_mask(result, input_mask)
         else:
             raise NameError(

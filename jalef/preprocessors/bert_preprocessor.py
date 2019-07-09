@@ -39,14 +39,14 @@ class BertPreprocessor(Preprocessor):
 
     def _padding_sentence(self):
         # this function returns a zero length sentence to pad last batch
-        return np.zeros(self._max_seq_len), np.zeros(self._max_seq_len), np.zeros(self._max_seq_len)
+        return [0] * self._max_seq_len, [0] * self._max_seq_len, [0] * self._max_seq_len
 
     def tokenize(self, text):
         """Converts a single `InputExample` into a single `InputFeatures`."""
 
-        input_ids = np.zeros(self._max_seq_len)
-        input_mask = np.zeros(self._max_seq_len)
-        input_segment_ids = np.zeros(self._max_seq_len)
+        input_ids = [0] * self._max_seq_len
+        input_mask = [0] * self._max_seq_len
+        input_segment_ids = [0] * self._max_seq_len
 
         tokens_input = self._tokenizer.tokenize(text)
 
@@ -80,10 +80,12 @@ class BertPreprocessor(Preprocessor):
         pass
 
     def transform(self, texts):
-        result = np.empty([len(texts)], dtype=[("input_ids", np.ndarray, 1), ("input_masks", np.ndarray, 1), ("segment_ids", np.ndarray, 1)])
+        input_ids, input_masks, segment_ids = [], [], []
 
         for i, text in enumerate(texts):
             input_id, input_mask, segment_id = self.tokenize(text=text)
-            result[i] = (input_id, input_mask, segment_id)
+            input_ids.append(input_id)
+            input_masks.append(input_mask)
+            segment_ids.append(segment_id)
 
-        return result
+        return np.array([np.array(input_ids), np.array(input_masks), np.array(segment_ids)])
