@@ -39,16 +39,16 @@ class BertPreprocessor(Preprocessor):
 
     def _padding_sentence(self):
         # this function returns a zero length sentence to pad last batch
-        return [0] * self._max_seq_len, [0] * self._max_seq_len, [0] * self._max_seq_len
+        return np.zeros(self._max_seq_len), np.zeros(self._max_seq_len), np.zeros(self._max_seq_len)
 
-    def tokenize(self, example):
+    def tokenize(self, text):
         """Converts a single `InputExample` into a single `InputFeatures`."""
 
-        input_ids = [0] * self._max_seq_len
-        input_mask = [0] * self._max_seq_len
-        input_segment_ids = [0] * self._max_seq_len
+        input_ids = np.zeros(self._max_seq_len)
+        input_mask = np.zeros(self._max_seq_len)
+        input_segment_ids = np.zeros(self._max_seq_len)
 
-        tokens_input = self._tokenizer.tokenize(example.text)
+        tokens_input = self._tokenizer.tokenize(text)
 
         # if too long cut to size (the first token will be [CLS], the last [SEP])
         if len(tokens_input) > self._max_seq_len - 2:
@@ -80,14 +80,10 @@ class BertPreprocessor(Preprocessor):
         pass
 
     def transform(self, texts):
-        input_ids, input_masks, segment_ids = [], [], []
+        result = np.empty([len(texts)], dtype=[("input_ids", np.ndarray, 1), ("input_masks", np.ndarray, 1), ("segment_ids", np.ndarray, 1)])
 
-        for text in texts:
-            input_id, input_mask, segment_id = self.tokenize(text)
-            input_ids.append(input_id)
-            input_masks.append(input_mask)
-            segment_ids.append(segment_id)
+        for i, text in enumerate(texts):
+            input_id, input_mask, segment_id = self.tokenize(text=text)
+            result[i] = (input_id, input_mask, segment_id)
 
-        return np.array([np.array(input_ids), np.array(input_masks), np.array(segment_ids)],
-                        dtype=[("input_ids", np.ndarray, 1), ("input_masks", np.ndarray, 1),
-                               ("segment_ids", np.ndarray, 1)])
+        return result

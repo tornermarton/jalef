@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from tensorflow.python.keras.utils import to_categorical
-import numpy as np
 
 
 class Preprocessor(ABC):
@@ -22,5 +21,4 @@ class Preprocessor(ABC):
         return self.transform(texts=texts)
 
     def fit_transform_classification(self, texts, labels):
-        return np.array([self.fit_transform(texts=texts), to_categorical(labels)],
-                        dtype=[("input", np.ndarray, 1), ("output", np.ndarray, 1)])
+        return self.fit_transform(texts=texts), to_categorical(labels)
