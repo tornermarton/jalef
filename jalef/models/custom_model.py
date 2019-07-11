@@ -2,12 +2,11 @@ from tensorflow.python.keras import Input
 from tensorflow.python.keras.layers import Embedding, Bidirectional, LSTM, Dense, Dropout
 from tensorflow.python.keras.models import Model
 
-from jalef.preprocessors import Word2VecPreprocessor
-from .nlp_model import NLPModel
+from jalef.preprocessing import Word2VecPreprocessor
 from jalef.layers import Bert
 
 
-class CustomModel(NLPModel):
+class CustomModel():
     """
     Fully customizable basic model. Task can be classification or regression. If classification the number of neurons
     in the output layer will be equal to the num_classes parameter, if regression than 1.
@@ -21,7 +20,9 @@ class CustomModel(NLPModel):
                  use_pretrained_embeddings=False,
                  embedding_type=None,
                  embedding_model_path=None,
+                 lstm_units_size=256,
                  use_bidirectional_lstm=False,
+                 hidden_units_size=256,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -51,7 +52,7 @@ class CustomModel(NLPModel):
             x = Embedding(input_dim=self._vocab_size, output_dim=self._embedding_dim, trainable=True)(inputs)
         else:
             if self._embedding_type == "bert":
-
+                pass
             elif self._embedding_type == "word2vec":
                 wp = Word2VecPreprocessor(max_sequence_length=self._time_steps, pretrained_model_path=self._embedding_model_path)
 

@@ -1,10 +1,8 @@
-from tensorflow.python.keras import backend as K
-from tensorflow.python.keras import Model
 from tensorflow.python.keras.backend import int_shape
-from tensorflow.python.keras.layers import Permute, Dense, Lambda, RepeatVector, Multiply
+import tensorflow as tf
 
 
-class AttentionBlock(Model):
+class AttentionBlock(tf.keras.Model):
 
     def __init__(self, use_shared_attention_vector=True, **kwargs):
         self.shared_attention_vector = use_shared_attention_vector
@@ -15,14 +13,14 @@ class AttentionBlock(Model):
         time_steps = int_shape(inputs)[1]
         input_dim = int_shape(inputs)[2]
 
-        a = Permute((2, 1))(inputs)
-        attention_probs = Dense(time_steps, activation='softmax', name='attention_probs')(a)
+        a = tf.keras.layers.Permute((2, 1))(inputs)
+        attention_probs = tf.keras.layers.Dense(time_steps, activation='softmax', name='attention_probs')(a)
 
         if self.shared_attention_vector:
-            dim_reduction = Lambda(lambda x: K.mean(x, axis=1), name='dim_reduction')(attention_probs)
-            attention_probs = RepeatVector(input_dim)(dim_reduction)
+            dim_reduction = tf.keras.layers.Lambda(lambda x: tf.keras.backend.mean(x, axis=1), name='dim_reduction')(attention_probs)
+            attention_probs = tf.keras.layers.RepeatVector(input_dim)(dim_reduction)
 
-        attention_mat = Permute((2, 1), name='attention_matrix')(attention_probs)
-        outputs = Multiply(name='attention_mul')([inputs, attention_mat])
+        attention_mat = tf.keras.layers.Permute((2, 1), name='attention_matrix')(attention_probs)
+        outputs = tf.keras.layers.Multiply(name='attention_mul')([inputs, attention_mat])
 
-        return outputs
+        return attention_probs

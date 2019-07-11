@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import tensorflow as tf
+from enum import Enum, auto
 
 
 class Core(ABC):
@@ -45,7 +46,7 @@ class Core(ABC):
         pass
 
     def compile(self, print_summary=True, weights_file=None):
-        self._construct_model(print_summary)
+        self._construct_model(print_summary=print_summary)
 
         if weights_file is not None:
             if weights_file != self._weights_file:
@@ -76,7 +77,7 @@ class Core(ABC):
         self._model.load_weights(weights_path)
 
     def load_best_model(self):
-        self.load_model_weights(self._weights_file)
+        self.load_model_weights(weights_path=self._weights_file)
 
     def evaluate(self, X_test, y_test):
         self.load_best_model()
@@ -97,6 +98,7 @@ class AttentionModelCore(Core, ABC):
                  use_attention: bool=True,
                  use_shared_attention_vector: bool=True,
                  **kwargs):
+
         super().__init__(**kwargs)
 
         self._use_attention = use_attention
@@ -118,6 +120,7 @@ class Seq2SeqCore(AttentionModelCore, ABC):
                  target_embedding_matrix=None,
                  **kwargs
                  ):
+
         super().__init__(**kwargs)
 
         self._time_steps = time_steps
@@ -144,10 +147,34 @@ class Seq2SeqCore(AttentionModelCore, ABC):
     def _construct_inference_model(self, print_summary):
         pass
 
-    def _construct_model(self, print_summary=True):
-        self._construct_train_model(print_summary)
+    def _construct_model(self, print_summary):
+        self._construct_train_model(print_summary=print_summary)
 
-        self._construct_inference_model(print_summary)
+        self._construct_inference_model(print_summary=print_summary)
+
+
+class CustomModelCore(Core, ABC):
+
+    class Tasks(Enum):
+        REGRESSION = auto()
+        CLASSIFICATION = auto()
+
+    def __init__(self,
+                 task,
+                 n_classes,
+                 **kwargs):
+
+        super().__init__(**kwargs)
+
+        if task not in CustomModelCore.Tasks:
+            raise ValueError("Task must be one of the supported (eg. .Tasks.REGRESSION)!")
+
+        self._task = task
+
+        if n_classes < 2:
+            raise ValueError("Value of classes must be at least 2!")
+
+        self._n_classes = n_classes
 
 
 class CustomLSTMModelCore(Core, ABC):
