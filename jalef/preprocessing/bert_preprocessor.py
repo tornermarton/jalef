@@ -3,7 +3,7 @@ import tensorflow as tf
 from bert.tokenization import FullTokenizer
 import numpy as np
 
-from jalef.preprocessors.preprocessor import Preprocessor
+from jalef.preprocessing.preprocessor import Preprocessor
 
 
 class BertPreprocessor(Preprocessor):

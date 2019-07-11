@@ -3,7 +3,7 @@ import numpy as np
 from tensorflow.python.keras.preprocessing.text import Tokenizer
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 
-from jalef.preprocessors.preprocessor import Preprocessor
+from jalef.preprocessing.preprocessor import Preprocessor
 
 
 class Word2VecPreprocessor(Preprocessor):
