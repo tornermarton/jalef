@@ -54,7 +54,14 @@ def escape_text(raw):
 
 
 def text_to_sequences(text, max_sequence_length, verbosity):
-    sentences = tokenize.sent_tokenize(text)
+    while True:
+        try:
+            sentences = tokenize.sent_tokenize(text)
+            break
+        except LookupError:
+            import nltk
+            nltk.download('punkt')
+
     words = text.split(" ")
     lens = [len(s.split(" ")) for s in sentences]
 
