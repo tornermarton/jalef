@@ -1,3 +1,6 @@
+from typing import List, Union
+import numpy as np
+
 from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed, Concatenate
 from tensorflow.python.keras.models import Model
 
@@ -7,9 +10,9 @@ from jalef.layers.attention import AttentionBlock
 
 class SimpleSeq2Seq(Seq2SeqCore):
     def __init__(self,
-                 n_lstm_units,
-                 dropout_rate,
-                 recurrent_dropout_rate,
+                 n_lstm_units: int,
+                 dropout_rate: float,
+                 recurrent_dropout_rate: float,
                  **kwargs):
 
         super().__init__(**kwargs)
@@ -29,7 +32,7 @@ class SimpleSeq2Seq(Seq2SeqCore):
         self._decoder_dense = None
         self._decoder_outputs = None
 
-    def _construct_train_model(self, print_summary):
+    def _construct_train_model(self, print_summary: bool) -> None:
         # Encoder
 
         self._encoder_inputs = Input(shape=(self._time_steps,), name='encoder_inputs')
@@ -46,8 +49,8 @@ class SimpleSeq2Seq(Seq2SeqCore):
 
         if self._bidirectional_encoder:
             self._encoder_outputs, forward_h, forward_c, backward_h, backward_c = \
-                Bidirectional(LSTM(units=self._n_lstm_units, return_sequences=True, return_state=True,
-                                   dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate),
+                Bidirectional(layer=LSTM(units=self._n_lstm_units, return_sequences=True, return_state=True,
+                                         dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate),
                               name='encoder_LSTM')(encoder_embedding)
 
             encoder_h = Concatenate()([forward_h, backward_h])
@@ -90,13 +93,13 @@ class SimpleSeq2Seq(Seq2SeqCore):
 
             self._decoder_outputs = self._decoder_attention(self._decoder_outputs)
 
-        self._decoder_dense = TimeDistributed(Dense(units=self._target_vocab_size, activation='softmax'))
+        self._decoder_dense = TimeDistributed(layer=Dense(units=self._target_vocab_size, activation='softmax'))
 
         self._decoder_outputs = self._decoder_dense(self._decoder_outputs)
 
         self._model = Model(inputs=[self._encoder_inputs, self._decoder_inputs], outputs=[self._decoder_outputs])
 
-    def _construct_inference_model(self, print_summary):
+    def _construct_inference_model(self, print_summary: bool) -> None:
         # Encoder
 
         self._encoder_inf_model = Model(inputs=self._encoder_inputs, outputs=self._encoder_states)
@@ -127,6 +130,6 @@ class SimpleSeq2Seq(Seq2SeqCore):
             print("\nDecoder model:")
             self._decoder_inf_model.summary()
 
-    def predict(self, X):
+    def predict(self, X: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
         # TODO: implement prediction
         raise NotImplementedError()

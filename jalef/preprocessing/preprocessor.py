@@ -22,3 +22,7 @@ class Preprocessor(ABC):
 
     def fit_transform_classification(self, texts, labels):
         return self.fit_transform(texts=texts), to_categorical(labels)
+
+    @abstractmethod
+    def inverse_transform(self, sequences):
+        pass

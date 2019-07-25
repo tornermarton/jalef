@@ -89,3 +89,6 @@ class BertPreprocessor(Preprocessor):
             segment_ids.append(segment_id)
 
         return np.array([np.array(input_ids), np.array(input_masks), np.array(segment_ids)])
+
+    def inverse_transform(self, sequences):
+        return self._tokenizer.convert_ids_to_tokens(sequences)

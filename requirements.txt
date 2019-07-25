@@ -5,8 +5,9 @@ tensorflow-hub
 gensim
 numpy
 pandas
-ipython
+ipython==5.5.0
 matplotlib
 cufflinks
 plotly==3.6.1
 sklearn
+collections

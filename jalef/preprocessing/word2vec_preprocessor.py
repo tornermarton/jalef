@@ -30,6 +30,10 @@ class Word2VecPreprocessor(Preprocessor):
 
         return np.array(sequences)
 
+    def inverse_transform(self, sequences):
+        # TODO: implement Word2VecPreprocessor inverse_transform
+        raise NotImplementedError
+
     def get_embedding_matrix(self, embedding_dimension, pretrained_model_path):
         word_vectors = gensim.models.KeyedVectors.load_word2vec_format(fname=pretrained_model_path, binary=True)
 

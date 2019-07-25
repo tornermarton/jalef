@@ -1,20 +1,25 @@
 from abc import ABC, abstractmethod
+from typing import Any, List, Union
+import numpy as np
+
 import tensorflow as tf
 from enum import Enum, auto
+
+from tensorflow.python.keras.callbacks import History
 
 
 class Core(ABC):
 
     def __init__(self,
-                 optimizer: str="adam",
-                 loss: str="mse",
-                 metrics: list=None,
-                 monitor: str ="val_acc",
-                 epochs: int=10,
-                 batch_size: int=128,
-                 shuffle: bool=True,
-                 patience: int=10,
-                 min_delta: float=0.005
+                 optimizer: str = "adam",
+                 loss: str = "mse",
+                 metrics: list = None,
+                 monitor: str = "val_acc",
+                 epochs: int = 10,
+                 batch_size: int = 128,
+                 shuffle: bool = True,
+                 patience: int = 10,
+                 min_delta: float = 0.005
                  ):
         self._optimizer = optimizer
         self._loss = loss
@@ -42,10 +47,10 @@ class Core(ABC):
         self._model = None
 
     @abstractmethod
-    def _construct_model(self, print_summary):
+    def _construct_model(self, print_summary: bool) -> None:
         pass
 
-    def compile(self, print_summary=True, weights_file=None):
+    def compile(self, print_summary: bool = True, weights_file: str = None) -> None:
         self._construct_model(print_summary=print_summary)
 
         if weights_file is not None:
@@ -61,7 +66,9 @@ class Core(ABC):
         if print_summary:
             self._model.summary()
 
-    def train(self, X_train, y_train, X_valid, y_valid, verbose=0):
+    def train(self, X_train: np.ndarray, y_train: np.ndarray, X_valid: np.ndarray, y_valid: np.ndarray,
+              verbose: int = 0) -> History:
+
         history = self._model.fit(X_train, y_train,
                                   batch_size=self._batch_size,
                                   epochs=self._epochs,
@@ -73,32 +80,31 @@ class Core(ABC):
 
         return history
 
-    def load_model_weights(self, weights_path):
-        self._model.load_weights(weights_path)
+    def load_weights(self, filepath: str) -> None:
+        self._model.load_weights(filepath=filepath)
 
-    def load_best_model(self):
-        self.load_model_weights(weights_path=self._weights_file)
+    def load_best_model(self) -> None:
+        self.load_weights(filepath=self._weights_file)
 
-    def evaluate(self, X_test, y_test):
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Any:
         self.load_best_model()
 
-        return self._model.evaluate(X_test, y_test)
+        return self._model.evaluate(x=X_test, y=y_test)
 
-    def add_callback(self, callback):
+    def add_callback(self, callback: tf.python.keras.callbacks.Callback) -> None:
         self._callbacks.append(callback)
 
     @abstractmethod
-    def predict(self, X):
+    def predict(self, X: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
         pass
 
 
 class AttentionModelCore(Core, ABC):
 
     def __init__(self,
-                 use_attention: bool=True,
-                 use_shared_attention_vector: bool=True,
+                 use_attention: bool = True,
+                 use_shared_attention_vector: bool = True,
                  **kwargs):
-
         super().__init__(**kwargs)
 
         self._use_attention = use_attention
@@ -109,18 +115,17 @@ class Seq2SeqCore(AttentionModelCore, ABC):
 
     def __init__(self,
                  time_steps: int = 50,
-                 source_vocab_size: int=20000,
-                 embedding_dim: int=300,
-                 target_vocab_size: int =20000,
-                 trainable_embeddings: bool=False,
-                 use_attention: bool=True,
-                 use_shared_attention_vector: bool=True,
-                 bidirectional_encoder: bool=True,
+                 source_vocab_size: int = 20000,
+                 embedding_dim: int = 300,
+                 target_vocab_size: int = 20000,
+                 trainable_embeddings: bool = False,
+                 use_attention: bool = True,
+                 use_shared_attention_vector: bool = True,
+                 bidirectional_encoder: bool = True,
                  source_embedding_matrix=None,
                  target_embedding_matrix=None,
                  **kwargs
                  ):
-
         super().__init__(**kwargs)
 
         self._time_steps = time_steps
@@ -140,34 +145,33 @@ class Seq2SeqCore(AttentionModelCore, ABC):
         self._decoder_inf_model = None
 
     @abstractmethod
-    def _construct_train_model(self, print_summary):
+    def _construct_train_model(self, print_summary: bool) -> None:
         pass
 
     @abstractmethod
-    def _construct_inference_model(self, print_summary):
+    def _construct_inference_model(self, print_summary: bool) -> None:
         pass
 
-    def _construct_model(self, print_summary):
+    def _construct_model(self, print_summary: bool) -> None:
         self._construct_train_model(print_summary=print_summary)
 
         self._construct_inference_model(print_summary=print_summary)
 
 
 class CustomModelCore(Core, ABC):
-
-    class Tasks(Enum):
+    class Task(Enum):
         REGRESSION = auto()
         CLASSIFICATION = auto()
 
     def __init__(self,
-                 task,
-                 n_classes,
+                 task: Task,
+                 n_classes: int,
                  **kwargs):
 
         super().__init__(**kwargs)
 
-        if task not in CustomModelCore.Tasks:
-            raise ValueError("Task must be one of the supported (eg. .Tasks.REGRESSION)!")
+        if task not in CustomModelCore.Task:
+            raise ValueError("Task must be one of the supported (eg. .Task.REGRESSION)!")
 
         self._task = task
 
@@ -180,7 +184,7 @@ class CustomModelCore(Core, ABC):
 class CustomLSTMModelCore(Core, ABC):
 
     def __init__(self,
-                 lstm_units_size: list,
+                 lstm_units_size: List[int],
                  **kwargs):
         super().__init__(**kwargs)
 

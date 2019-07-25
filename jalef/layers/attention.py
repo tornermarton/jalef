@@ -4,7 +4,7 @@ import tensorflow as tf
 
 class AttentionBlock(tf.keras.Model):
 
-    def __init__(self, use_shared_attention_vector=True, **kwargs):
+    def __init__(self, use_shared_attention_vector: bool=True, **kwargs):
         self.shared_attention_vector = use_shared_attention_vector
         super().__init__(**kwargs)
 

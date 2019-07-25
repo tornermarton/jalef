@@ -21,10 +21,10 @@ class Bert(tf.keras.layers.Layer):
         ENCODER_OUT = auto()
 
     def __init__(self,
-                 pretrained_model_path,
-                 output_size,
-                 pooling,
-                 n_layers_to_finetune=0,
+                 pretrained_model_path: str,
+                 output_size: int,
+                 pooling: Pooling,
+                 n_layers_to_finetune: int = 0,
                  **kwargs):
 
         self._pretrained_model_path = pretrained_model_path
@@ -91,12 +91,13 @@ class Bert(tf.keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         def mul_mask(x, m):
-            return x * tf.expand_dims(m, axis=-1)
+            return x * tf.expand_dims(input=m, axis=-1)
 
         def masked_reduce_mean(x, m):
-            return tf.reduce_sum(mul_mask(x, m), axis=1) / (tf.reduce_sum(m, axis=1, keepdims=True) + 1e-10)
+            return tf.reduce_sum(mul_mask(x=x, m=m), axis=1) / (
+                        tf.reduce_sum(input_tensor=m, axis=1, keepdims=True) + 1e-10)
 
-        inputs = [tf.keras.backend.cast(x, dtype="int32") for x in inputs]
+        inputs = [tf.keras.backend.cast(x=x, dtype="int32") for x in inputs]
         input_ids, input_mask, segment_ids = inputs
         bert_inputs = dict(
             input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids
@@ -111,16 +112,16 @@ class Bert(tf.keras.layers.Layer):
                 "sequence_output"
             ]
 
-            input_mask = tf.cast(input_mask, tf.float32)
-            pooled = masked_reduce_mean(result, input_mask)
+            input_mask = tf.cast(x=input_mask, dtype=tf.float32)
+            pooled = masked_reduce_mean(x=result, m=input_mask)
 
         elif self._pooling == Bert.Pooling.ENCODER_OUT:
             result = self._bert_module(inputs=bert_inputs, signature="tokens", as_dict=True)[
                 "sequence_output"
             ]
 
-            input_mask = tf.cast(input_mask, tf.float32)
-            pooled = mul_mask(result, input_mask)
+            input_mask = tf.cast(x=input_mask, dtype=tf.float32)
+            pooled = mul_mask(x=result, m=input_mask)
         else:
             raise NameError(
                 "Unsupported pooling type {}! Please use one from Bert.SUPPORTED_POOLING_TYPES.".format(self._pooling)

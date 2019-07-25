@@ -8,8 +8,8 @@ from jalef.layers import AttentionBlock
 class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
 
     def __init__(self,
-                 dropout_rate,
-                 recurrent_dropout_rate,
+                 dropout_rate: float,
+                 recurrent_dropout_rate: float,
                  **kwargs
                  ):
 
@@ -18,20 +18,22 @@ class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
         self._dropout_rate = dropout_rate
         self._recurrent_dropout_rate = recurrent_dropout_rate
 
-    def _construct_train_model(self, print_summary):
+    def _construct_train_model(self, print_summary: bool) -> None:
         inputs = Input(shape=(self._time_steps,))
 
         if self._source_embedding_matrix is None:
             # Assert that weights are trainable, because otherwise doesn't make sense
             x = Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim, trainable=True)(inputs)
         else:
-            x = Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim, weights=[self._source_embedding_matrix],
+            x = Embedding(input_dim=self._source_vocab_size, output_dim=self._embedding_dim,
+                          weights=[self._source_embedding_matrix],
                           trainable=self._trainable_embeddings)(inputs)
 
         for i in range(len(self._lstm_units_size)):
             if self._bidirectional_encoder:
-                x = Bidirectional(LSTM(units=self._lstm_units_size[i], return_sequences=True,
-                                       dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate))(x)
+                x = Bidirectional(layer=LSTM(units=self._lstm_units_size[i], return_sequences=True,
+                                             dropout=self._dropout_rate,
+                                             recurrent_dropout=self._recurrent_dropout_rate))(x)
             else:
                 x = LSTM(units=self._lstm_units_size[i], return_sequences=True,
                          dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate)(x)
@@ -45,17 +47,16 @@ class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
             if self._bidirectional_encoder:
                 n_units *= 2  # outputs are concatenated
 
-            x = LSTM(n_units, return_sequences=True)(x)
+            x = LSTM(units=n_units, return_sequences=True)(x)
 
-        outputs = TimeDistributed(Dense(units=self._target_vocab_size, activation='softmax'))(x)
+        outputs = TimeDistributed(layer=Dense(units=self._target_vocab_size, activation='softmax'))(x)
 
-        self._model = Model(inputs, outputs)
+        self._model = Model(inputs=inputs, outputs=outputs)
 
-    def _construct_inference_model(self, print_summary):
+    def _construct_inference_model(self, print_summary: bool):
         # Here no inference model is needed
         pass
 
     def predict(self, X):
         # TODO: implement prediction
         raise NotImplementedError()
-
