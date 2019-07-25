@@ -13,7 +13,7 @@ def enable_plotly_in_cell():
     init_notebook_mode(connected=False)
 
 
-def confusion_matrix(y_true, y_pred,
+def plot_confusion_matrix(y_true, y_pred,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.get_cmap("Blues"),
@@ -37,7 +37,7 @@ def confusion_matrix(y_true, y_pred,
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
-    fig, ax = plt.subplots(figsize=(9, 9))
+    fig, ax = plt.subplots(figsize=(16, 16))
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
     # We want to show all ticks...
