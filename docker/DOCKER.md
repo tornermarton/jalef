@@ -15,3 +15,9 @@ docker build -t tornermarton/tf-jupyter -f docker/Dockerfile .
 #OR
 docker run --name 'tf-jupyter' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter
 ```
+
+## Run container on server (nvidia docker and CUDA required)
+
+```bash
+docker run --runtime=nvidia --name 'tmarton-jalef' -p 8888:8888 -p 6006:6006 -v /home/hallgato-tmarton/projects/jalef:/app tornermarton/tf-jupyter-gpu
+```
