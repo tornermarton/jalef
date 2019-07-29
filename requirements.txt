@@ -10,4 +10,3 @@ matplotlib
 cufflinks
 plotly==3.6.1
 sklearn
-collections
