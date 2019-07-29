@@ -12,6 +12,8 @@ COPY requirements.system /
 RUN apt-get update && pip install --upgrade pip && mkdir /app/
 RUN xargs apt-get install < requirements.system
 RUN pip install --trusted-host pypi.python.org -r ../requirements.txt
+# this is a fix for deep2 server
+RUN pip uninstall -y ipython prompt_toolkit && pip install ipython prompt_toolkit
 
 RUN apt-get install -y git
 
