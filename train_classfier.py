@@ -71,7 +71,7 @@ def get_training_data(parameters):
     X_train, y_train = bp.fit_transform_classification(train["Text"], train["Label"])
 
     valid = pd.read_csv(os.path.join(parameters["dataset"]["path"], "validation.csv"))
-    X_valid, y_valid = bp.fit_transform_classification(valid["text"], valid["label"])
+    X_valid, y_valid = bp.fit_transform_classification(valid["Text"], valid["Label"])
 
     test = pd.read_csv(os.path.join(parameters["dataset"]["path"], "test.csv"))
     X_test, y_test = bp.fit_transform_classification(test["Text"], test["Label"])
