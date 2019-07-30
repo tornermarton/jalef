@@ -112,3 +112,5 @@ tests/
 data/lecture_text_data/
 
 data/coursera_dataset\.csv
+
+data/coursera_dataset/

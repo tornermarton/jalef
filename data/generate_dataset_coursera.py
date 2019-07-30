@@ -7,8 +7,11 @@ import os
 from nltk import tokenize
 
 import pandas as pd
+import numpy as np
 
 from IPython.display import display
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
 PATTERNS_TO_REMOVE = ["\[(.*?)\]", ">>"]
 TEMP_FILE = ".temp_dataset.csv"
@@ -109,6 +112,19 @@ def process_text(text, max_sequence_length, verbosity):
     return sequences
 
 
+def process_file(root, filename, max_sequence_length, verbosity):
+    intent = filename.split("_")[0]
+
+    with open(os.path.join(root, filename)) as in_file:
+        text = " ".join(in_file.readlines())
+
+        with open(TEMP_FILE, "a") as out_file:
+            writer = csv.writer(out_file)
+            writer.writerows(((text, intent) for text in
+                              process_text(text=text, max_sequence_length=max_sequence_length,
+                                           verbosity=verbosity)))
+
+
 def create_temp_dataset(data_root_directory, max_sequence_length, verbosity):
     # walk root directory and append processed text (rows) to the output file.
     for root, dirs, files in os.walk(data_root_directory):
@@ -127,7 +143,7 @@ def create_temp_dataset(data_root_directory, max_sequence_length, verbosity):
     return
 
 
-def create_dataset_from_temp(output_file, min_sequence_length, n, verbosity):
+def create_dataset_from_temp(output_directory, min_sequence_length, n, do_splitting, verbosity):
     # read temp dataset
     dataset = pd.read_csv(TEMP_FILE, names=["Text", "Intent"])
 
@@ -167,7 +183,7 @@ def create_dataset_from_temp(output_file, min_sequence_length, n, verbosity):
     dataset = dataset.loc[dataset["Word_count"] >= min_sequence_length]
 
     if verbosity >= 1:
-        print("The new size of the dataframe is {}.".format(len(dataset)))
+        print("Too short sentences removed. The new size of the dataframe is {}.".format(len(dataset)))
 
     if verbosity >= 2:
         print()
@@ -176,41 +192,79 @@ def create_dataset_from_temp(output_file, min_sequence_length, n, verbosity):
 
     dataset = dataset.loc[:, ["Text", "Intent"]]
 
-    dataset.to_csv(path_or_buf=output_file, header=True, index=False)
+    if do_splitting:
+        # shuffle database (no need to reset index because it is dropped at saving)
+        dataset = shuffle(dataset)
+
+        # train-validation-test split
+        tmp, test = train_test_split(dataset, test_size=0.1, random_state=42, shuffle=False, stratify=None)
+        train, validation = train_test_split(tmp, test_size=0.2, random_state=42, shuffle=False, stratify=None)
+
+        train.to_csv(path_or_buf=os.path.join(output_directory, "train.csv"), header=True, index=False)
+        validation.to_csv(path_or_buf=os.path.join(output_directory, "validation.csv"), header=True, index=False)
+        test.to_csv(path_or_buf=os.path.join(output_directory, "test.csv"), header=True, index=False)
+
+    else:
+        dataset.to_csv(path_or_buf=os.path.join(output_directory, "dataset.csv"), header=True, index=False)
 
     return
 
 
-def main(args):
+def generate_dataset(data_root_directory: str,
+                     output_directory: str,
+                     min_sequence_length: int,
+                     max_sequence_length: int,
+                     n: int,
+                     do_splitting: bool,
+                     verbosity: int):
+
     if os.path.exists(TEMP_FILE):
         raise FileExistsError("A file with the name of the temporary file already exists! ({}))".format(TEMP_FILE))
 
     if os.path.exists(TEMP_FILE):
         raise FileExistsError("A file with the name of the output file already exists!")
 
-    if args.min_seq_len > args.max_seq_len:
+    if not os.path.exists(output_directory):
+        raise FileExistsError("Cannot find output_directory!")
+
+    if min_sequence_length > max_sequence_length:
         raise ValueError("min_seq_len cannot be bigger than max_seq_len!")
 
-    if args.verbosity >= 1:
+    if verbosity >= 1:
         print("Start reading files...")
 
-    create_temp_dataset(data_root_directory=args.data_root_dir, max_sequence_length=args.max_seq_len,
-                        verbosity=args.verbosity)
+    create_temp_dataset(data_root_directory=data_root_directory, max_sequence_length=max_sequence_length,
+                        verbosity=verbosity)
 
     if args.verbosity >= 1:
         print("Temporary dataset created, start cleaning data...")
 
-    create_dataset_from_temp(output_file=args.output_path, min_sequence_length=args.min_seq_len,
-                             n=args.use_top_n_categories, verbosity=args.verbosity)
+    create_dataset_from_temp(output_directory=output_directory, min_sequence_length=min_sequence_length,
+                             n=n, do_splitting=do_splitting, verbosity=verbosity)
 
-    if args.verbosity >= 1:
+    if verbosity >= 1:
         print("Dataset created, delete temporary dataset...")
 
     if os.path.exists(TEMP_FILE):
         os.remove(TEMP_FILE)
 
-    if args.verbosity >= 1:
+    if verbosity >= 1:
         print("OK")
+
+    return
+
+
+def main(args):
+    # set the random seeds
+    np.random.seed(1234)
+
+    generate_dataset(data_root_directory=args.data_root_dir,
+                     output_directory=args.output_path,
+                     min_sequence_length=args.min_seq_len,
+                     max_sequence_length=args.max_seq_len,
+                     n=args.use_top_n_categories,
+                     do_splitting=args.do_splitting,
+                     verbosity=args.verbosity)
 
     return
 
@@ -226,8 +280,9 @@ if __name__ == "__main__":
 
     parser.add_argument("output_path",
                         metavar="output_path",
-                        help="The path of the output file. (The output is in csv format)",
-                        default="dataset.csv",
+                        help="The path of the dataset root directory. (The outputs are in csv format - "
+                             "train/valid/test)",
+                        default="dataset",
                         type=str
                         )
 
@@ -252,6 +307,11 @@ if __name__ == "__main__":
                         help="Use only the top N categories (intents).",
                         default=None,
                         type=int
+                        )
+
+    parser.add_argument("--do-splitting",
+                        help="Generate train/valid/test.csv instead of dataset.csv (this shuffles the dataset!)",
+                        action="store_true"
                         )
 
     parser.add_argument("-v", "--verbosity",
