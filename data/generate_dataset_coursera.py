@@ -145,7 +145,7 @@ def create_temp_dataset(data_root_directory, max_sequence_length, verbosity):
 
 def create_dataset_from_temp(output_directory, min_sequence_length, n, do_splitting, verbosity):
     # read temp dataset
-    dataset = pd.read_csv(TEMP_FILE, names=["Text", "Intent"])
+    dataset = pd.read_csv(filepath_or_buffer=TEMP_FILE, names=["Text", "Intent"])
 
     if verbosity >= 1:
         print("The dataset has {} rows.".format(len(dataset)))
@@ -153,20 +153,16 @@ def create_dataset_from_temp(output_directory, min_sequence_length, n, do_splitt
     if verbosity >= 2:
         print()
         display(dataset.head(10))
-
-        print()
-        print("The following lines have some unexpected errors:")
-
-        # this should produce empty output which means no NaN values
-        for e, i in zip(dataset["Text"], dataset["Filename"]):
-            if type(e) is not str:
-                print(dataset.loc[dataset['Filename'] == i], e, i)
+        #
+        # print()
+        # print("The following lines have some unexpected errors:")
+        #
+        # # this should produce empty output which means no NaN values
+        # for e, i in zip(dataset["Text"], dataset["Filename"]):
+        #     if type(e) is not str:
+        #         print(dataset.loc[dataset['Filename'] == i], e, i)
 
     dataset["Word_count"] = [len(e.split(" ")) for e in dataset["Text"]]
-
-    if verbosity >= 2:
-        print()
-        display_word_counts(dataset)
 
     original_len = len(dataset)
 
@@ -185,12 +181,17 @@ def create_dataset_from_temp(output_directory, min_sequence_length, n, do_splitt
     if verbosity >= 1:
         print("Too short sentences removed. The new size of the dataframe is {}.".format(len(dataset)))
 
-    if verbosity >= 2:
-        print()
-        print("The new statistics:")
-        display_word_counts(dataset)
+    # generate and save LUT
+    lut = {idx: element for idx, element in enumerate(list(set(dataset["Intent"])))}
 
-    dataset = dataset.loc[:, ["Text", "Intent"]]
+    reverse_lut = {value: key for key, value in lut.items()}
+
+    dataset["Label"] = [reverse_lut[intent] for intent in dataset["Intent"]]
+
+    pd.DataFrame.from_dict(lut, orient='index').to_csv(path_or_buf=os.path.join(output_directory, "lut.csv"))
+
+    # select only the relevant columns to save
+    dataset = dataset.loc[:, ["Text", "Label"]]
 
     if do_splitting:
         # shuffle database (no need to reset index because it is dropped at saving)
