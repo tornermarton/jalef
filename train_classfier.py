@@ -99,7 +99,7 @@ def run_training(parameters):
                   metrics=parameters["hyperparameters"]["metrics"])
 
     # Save model configuration
-    with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json")) as file:
+    with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:
         json.dump(obj=model.to_json(), fp=file)
 
     # Define callbacks
@@ -147,4 +147,3 @@ if __name__ == '__main__':
 
     main(args=args)
 
-    print(read_parameters("train_parameters.json"))
