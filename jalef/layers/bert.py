@@ -34,12 +34,14 @@ class Bert(tf.keras.layers.Layer):
         self._trainable = n_layers_to_finetune != 0
         self._n_layers_to_finetune = n_layers_to_finetune
 
-        if pooling not in Bert.Pooling:
+        if type(pooling) is str and Bert.Pooling[pooling] in Bert.Pooling:
+            self._pooling = Bert.Pooling[pooling]
+        elif type(pooling) is Bert.Pooling and pooling in Bert.Pooling:
+            self._pooling = pooling
+        else:
             raise NameError(
                 "Unsupported pooling type {}! Please use one from Bert.Pooling.".format(pooling)
             )
-
-        self._pooling = pooling
 
         self._bert_module = None
 
@@ -65,7 +67,7 @@ class Bert(tf.keras.layers.Layer):
             trainable_layers = []
         else:
             raise NameError(
-                "Unsupported pooling type {}! Please use one from Bert.SUPPORTED_POOLING_TYPES.".format(self._pooling)
+                "Unsupported pooling type {}! Please use one from Bert.Pooling".format(self._pooling)
             )
 
         # Select how many layers to fine tune
@@ -95,7 +97,7 @@ class Bert(tf.keras.layers.Layer):
 
         def masked_reduce_mean(x, m):
             return tf.reduce_sum(mul_mask(x=x, m=m), axis=1) / (
-                        tf.reduce_sum(input_tensor=m, axis=1, keepdims=True) + 1e-10)
+                    tf.reduce_sum(input_tensor=m, axis=1, keepdims=True) + 1e-10)
 
         inputs = [tf.keras.backend.cast(x=x, dtype="int32") for x in inputs]
         input_ids, input_mask, segment_ids = inputs
@@ -124,10 +126,18 @@ class Bert(tf.keras.layers.Layer):
             pooled = mul_mask(x=result, m=input_mask)
         else:
             raise NameError(
-                "Unsupported pooling type {}! Please use one from Bert.SUPPORTED_POOLING_TYPES.".format(self._pooling)
+                "Unsupported pooling type {}! Please use one from Bert.Pooling".format(self._pooling)
             )
 
         return pooled
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], self.output_size
+
+    def get_config(self):
+        config = super().get_config()
+        config['pretrained_model_path'] = self._pretrained_model_path
+        config['output_size'] = self._output_size
+        config['pooling'] = self._pooling.name
+        config['n_layers_to_finetune'] = self._n_layers_to_finetune
+        return config
