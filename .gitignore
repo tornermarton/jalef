@@ -116,3 +116,5 @@ data/coursera_dataset\.csv
 data/coursera_dataset_*/
 
 logs/weights/
+
+data/
