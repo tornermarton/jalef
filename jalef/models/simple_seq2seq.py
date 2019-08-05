@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union, List
 import numpy as np
 
 from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed, Concatenate
@@ -32,7 +32,7 @@ class SimpleSeq2Seq(Seq2SeqCore):
         self._decoder_dense = None
         self._decoder_outputs = None
 
-    def _construct_train_model(self, print_summary: bool) -> None:
+    def _construct_train_model(self, print_summary: bool, **kwargs) -> None:
         # Encoder
 
         self._encoder_inputs = Input(shape=(self._time_steps,), name='encoder_inputs')
@@ -99,7 +99,10 @@ class SimpleSeq2Seq(Seq2SeqCore):
 
         self._model = Model(inputs=[self._encoder_inputs, self._decoder_inputs], outputs=[self._decoder_outputs])
 
-    def _construct_inference_model(self, print_summary: bool) -> None:
+        if print_summary:
+            self._model.summary()
+
+    def _construct_inference_model(self, print_summary: bool, **kwargs) -> None:
         # Encoder
 
         self._encoder_inf_model = Model(inputs=self._encoder_inputs, outputs=self._encoder_states)
@@ -130,6 +133,8 @@ class SimpleSeq2Seq(Seq2SeqCore):
             print("\nDecoder model:")
             self._decoder_inf_model.summary()
 
-    def predict(self, X: Union[np.ndarray, List[np.ndarray]]) -> np.ndarray:
+    def predict(self, X_test: Union[np.ndarray, List[np.ndarray]], save_predictions: bool = False,
+                path: str = "") -> np.ndarray:
+
         # TODO: implement prediction
         raise NotImplementedError()

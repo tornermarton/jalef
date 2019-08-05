@@ -1,3 +1,6 @@
+from typing import Union, List
+
+import numpy as np
 from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed
 from tensorflow.python.keras.models import Model
 
@@ -18,7 +21,7 @@ class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
         self._dropout_rate = dropout_rate
         self._recurrent_dropout_rate = recurrent_dropout_rate
 
-    def _construct_train_model(self, print_summary: bool) -> None:
+    def _construct_train_model(self, print_summary: bool, **kwargs) -> None:
         inputs = Input(shape=(self._time_steps,))
 
         if self._source_embedding_matrix is None:
@@ -53,10 +56,6 @@ class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
 
         self._model = Model(inputs=inputs, outputs=outputs)
 
-    def _construct_inference_model(self, print_summary: bool):
+    def _construct_inference_model(self, print_summary: bool, **kwargs):
         # Here no inference model is needed
         pass
-
-    def predict(self, X):
-        # TODO: implement prediction
-        raise NotImplementedError()
