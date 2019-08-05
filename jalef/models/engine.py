@@ -85,7 +85,8 @@ class Core(ABC):
               y_test: np.ndarray,
               load_best_model_on_end: bool = True,
               evaluate_on_end: bool = True,
-              save_predictions_on_end = True,
+              save_predictions_on_end: bool = True,
+              predictions_path: str = True,
               verbose: int = 0) -> History:
 
         history: History = self._model.fit(X_train, y_train,
@@ -104,7 +105,7 @@ class Core(ABC):
             self.evaluate(X_test=X_test, y_test=y_test)
 
         if save_predictions_on_end:
-            self.predict(X_test=X_test, save_predictions=True)
+            self.predict(X_test=X_test, save_predictions=True, path=predictions_path)
 
         return history
 
@@ -145,7 +146,8 @@ class AttentionModelCore(Core, ABC):
                  weights_root: str = "",
                  tensorboard_root: str = None
                  ):
-        super().__init__(name, optimizer, loss, metrics, monitor, epochs, batch_size, shuffle, patience, min_delta, weights_root, tensorboard_root)
+        super().__init__(name, optimizer, loss, metrics, monitor, epochs, batch_size, shuffle, patience, min_delta,
+                         weights_root, tensorboard_root)
 
         self._use_attention: bool = use_attention
         self._use_shared_attention_vector: bool = use_shared_attention_vector
@@ -229,7 +231,8 @@ class SequenceClassifierCore(Core, ABC):
                  tensorboard_root: str = None
                  ):
 
-        super().__init__(name, optimizer, loss, metrics, monitor, epochs, batch_size, shuffle, patience, min_delta, weights_root, tensorboard_root)
+        super().__init__(name, optimizer, loss, metrics, monitor, epochs, batch_size, shuffle, patience, min_delta,
+                         weights_root, tensorboard_root)
 
         self._n_classes: int = n_classes
         self._time_steps = time_steps
