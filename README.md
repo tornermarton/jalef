@@ -7,7 +7,7 @@ This deep learning framework is created for my professional practice and thesis 
 Use this token to clone this private repo in colab.
 
 ```
-ef9e5960b458d73b72b3fec314137cad4775ede3
+ba7aebdb4a34e89bd1906f1f845e1025787df7f1
 ```
 
 ## Data

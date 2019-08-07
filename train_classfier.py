@@ -9,15 +9,18 @@ import pandas as pd
 
 import tensorflow as tf
 
-from jalef.preprocessing import BertPreprocessor
+from jalef.preprocessing import BertPreprocessor, Word2VecPreprocessor
 from jalef.layers import Bert
+from jalef.models import Word2VecClassifier
 
 # set random seeds
 np.random.seed(1234)
 tf.set_random_seed(1234)
 
 # Initialize session
-sess = tf.Session()
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.5
+sess = tf.Session(config=config)
 
 
 def initialize_vars(sess):
@@ -63,10 +66,7 @@ def create_simple_bert_classifier(pretrained_model_path, output_size, n_layers_t
     return tf.keras.models.Model(inputs=bert_inputs, outputs=pred)
 
 
-def get_training_data(parameters):
-    bp = BertPreprocessor(max_sequence_length=parameters["dataset"]["max_seq_len"],
-                          pretrained_model_path=parameters["bert"]["pretrained_model_path"])
-
+def get_training_data(preprocessor, parameters):
     train = pd.read_csv(os.path.join(parameters["dataset"]["path"], "train.csv"))
     X_train, y_train = bp.fit_transform_classification(train["Text"], train["Label"])
 
@@ -82,50 +82,92 @@ def get_training_data(parameters):
 def run_training(parameters):
     name = "dataset=" + parameters["dataset"]["name"] + "_intents=" + str(parameters["dataset"]["n_intents"])
 
-    X_train, y_train, X_valid, y_valid, X_test, y_test = get_training_data(parameters)
+    # preprocessor = BertPreprocessor(max_sequence_length=parameters["dataset"]["max_seq_len"],
+    #                                 pretrained_model_path=parameters["model"]["pretrained_model_path"])
 
-    model = create_simple_bert_classifier(pretrained_model_path=parameters["bert"]["pretrained_model_path"],
-                                          output_size=parameters["bert"]["output_size"],
-                                          n_layers_to_finetune=parameters["bert"]["n_layers_to_finetune"],
-                                          max_seq_len=parameters["dataset"]["max_seq_len"],
-                                          num_classes=len(y_train[0]))
+    preprocessor = Word2VecPreprocessor(max_sequence_length=parameters["dataset"]["max_seq_len"])
 
-    # Print layers
-    model.summary()
+    X_train, y_train, X_valid, y_valid, X_test, y_test = get_training_data(preprocessor=preprocessor,
+                                                                           parameters=parameters)
 
-    # Compile model
-    model.compile(optimizer=parameters["hyperparameters"]["optimizer"], 
-                  loss=parameters["hyperparameters"]["loss"], 
-                  metrics=parameters["hyperparameters"]["metrics"])
+    # model = create_simple_bert_classifier(pretrained_model_path=parameters["model"]["pretrained_model_path"],
+    #                                       output_size=parameters["model"]["output_size"],
+    #                                       n_layers_to_finetune=parameters["model"]["n_layers_to_finetune"],
+    #                                       max_seq_len=parameters["dataset"]["max_seq_len"],
+    #                                       num_classes=len(y_train[0]))
+
+    model = Word2VecClassifier(n_classes=parameters["model"]["n_intents"],
+                               time_steps=parameters["dataset"]["max_seq_len"],
+                               fc_layer_sizes=[256, 128],
+                               lstm_layer_sizes=[128],
+                               name=name,
+                               optimizer=parameters["hyperparameters"]["optimizer"],
+                               loss=parameters["hyperparameters"]["loss"],
+                               metrics=parameters["hyperparameters"]["metrics"],
+                               monitor=parameters["hyperparameters"]["monitor"],
+                               epochs=parameters["hyperparameters"]["epochs"],
+                               batch_size=parameters["hyperparameters"]["batch_size"],
+                               shuffle=parameters["hyperparameters"]["shuffle"],
+                               patience=parameters["hyperparameters"]["patience"],
+                               min_delta=parameters["hyperparameters"]["min_delta"],
+                               weights_root=parameters["logging"]["weights_root"],
+                               tensorboard_root=parameters["logging"]["tensorboard_root"]
+                               )
+
+    model.compile(print_summary=True)
 
     # Save model configuration
     with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:
-        json.dump(obj=model.to_json(), fp=file)
+        json.dump(obj=model._model.to_json(), fp=file)
 
-    # Define callbacks
-    model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath=parameters["logging"]["weights_root"] + name + "_weights.hdf5",
-        monitor=parameters["hyperparameters"]["monitor"],
-        verbose=1,
-        save_best_only=True)
-
-    early_stopping = tf.keras.callbacks.EarlyStopping(patience=parameters["hyperparameters"]["patience"],
-                                                      min_delta=parameters["hyperparameters"]["min_delta"],
-                                                      monitor=parameters["hyperparameters"]["monitor"])
-
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=parameters["logging"]["tensorboard_root"] + name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S"))
-
-    # Training
     initialize_vars(sess=sess)
-    model.fit([X_train[0], X_train[1], X_train[2]], y_train,
-              validation_data=([X_valid[0], X_valid[1], X_valid[2]], y_valid),
-              batch_size=parameters["hyperparameters"]["batch_size"],
-              epochs=parameters["hyperparameters"]["epochs"],
-              verbose=1,
-              shuffle=parameters["hyperparameters"]["shuffle"],
-              callbacks=[model_checkpoint, early_stopping, tensorboard_callback]
-              )
+    model.train(X_train=X_train,
+                y_train=y_train,
+                X_valid=X_valid,
+                y_valid=y_valid,
+                X_test=X_test,
+                y_test=y_test,
+                load_best_model_on_end=True,
+                evaluate_on_end=True,
+                save_predictions_on_end=True,
+                predictions_path=os.path.join("data/coursera_predictions/",
+                                              "intents=" + str(parameters["dataset"]["n_intents"]) +
+                                              "_predictions.npy"),
+                verbose=1
+                )
+
+    # # Print layers
+    # model.summary()
+    #
+    # # Compile model
+    # model.compile(optimizer=parameters["hyperparameters"]["optimizer"],
+    #               loss=parameters["hyperparameters"]["loss"],
+    #               metrics=parameters["hyperparameters"]["metrics"])
+
+    # # Define callbacks
+    # model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath=parameters["logging"]["weights_root"] + name + "_weights.hdf5",
+    #     monitor=parameters["hyperparameters"]["monitor"],
+    #     verbose=1,
+    #     save_best_only=True)
+    #
+    # early_stopping = tf.keras.callbacks.EarlyStopping(patience=parameters["hyperparameters"]["patience"],
+    #                                                   min_delta=parameters["hyperparameters"]["min_delta"],
+    #                                                   monitor=parameters["hyperparameters"]["monitor"])
+    #
+    # tensorboard_callback = tf.keras.callbacks.TensorBoard(
+    #     log_dir=parameters["logging"]["tensorboard_root"] + name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S"))
+    #
+    # # Training
+    # initialize_vars(sess=sess)
+    # model.fit([X_train[0], X_train[1], X_train[2]], y_train,
+    #           validation_data=([X_valid[0], X_valid[1], X_valid[2]], y_valid),
+    #           batch_size=parameters["hyperparameters"]["batch_size"],
+    #           epochs=parameters["hyperparameters"]["epochs"],
+    #           verbose=1,
+    #           shuffle=parameters["hyperparameters"]["shuffle"],
+    #           callbacks=[model_checkpoint, early_stopping, tensorboard_callback]
+    #           )
 
 
 def main(args):
@@ -146,4 +188,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args=args)
-
