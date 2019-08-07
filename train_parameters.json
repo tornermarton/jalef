@@ -7,7 +7,8 @@
     "n_intents": 50
   },
   "model": {
-    "pretrained_model_path": "models/bert/",
+    "embedding": "word2vec",
+    "pretrained_model_path": "models/word2vec/GoogleNews-vectors-negative300.bin.gz",
     "output_size": 1024,
     "n_layers_to_finetune": 0
   },
@@ -17,7 +18,7 @@
     "metrics": [
       "acc"
     ],
-    "batch_size": 128,
+    "batch_size": 32,
     "epochs": 100000,
     "shuffle": true,
     "monitor": "val_acc",

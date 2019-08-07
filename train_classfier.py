@@ -80,7 +80,8 @@ def get_training_data(preprocessor, parameters):
 
 
 def run_training(parameters):
-    name = "dataset=" + parameters["dataset"]["name"] + "_intents=" + str(parameters["dataset"]["n_intents"])
+    name = "dataset=" + parameters["dataset"]["name"] + "_embedding=" + parameters["model"]["embedding"] + \
+           "_intents=" + str(parameters["dataset"]["n_intents"])
 
     # preprocessor = BertPreprocessor(max_sequence_length=parameters["dataset"]["max_seq_len"],
     #                                 pretrained_model_path=parameters["model"]["pretrained_model_path"])
@@ -95,8 +96,8 @@ def run_training(parameters):
     #                                       n_layers_to_finetune=parameters["model"]["n_layers_to_finetune"],
     #                                       max_seq_len=parameters["dataset"]["max_seq_len"],
     #                                       num_classes=len(y_train[0]))
-    
-    embedding_matrix = preprocessor.get_embedding_matrix(300, "models/word2vec/GoogleNews-vectors-negative300.bin.gz")
+
+    embedding_matrix = preprocessor.get_embedding_matrix(300, parameters["model"]["pretrained_model_path"])
 
     model = Word2VecClassifier(n_classes=parameters["dataset"]["n_intents"],
                                time_steps=parameters["dataset"]["max_seq_len"],
