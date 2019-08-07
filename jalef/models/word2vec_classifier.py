@@ -34,10 +34,10 @@ class Word2VecClassifier(SequenceClassifierCore):
 
         if embedding_matrix is None:
             x = tf.keras.layers.Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
-                                          input_length=self._time_steps, trainable=True)
+                                          input_length=self._time_steps, trainable=True)(inputs)
         else:
             x = tf.keras.layers.Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
-                                          input_length=self._time_steps, trainable=False, weights=[embedding_matrix])
+                                          input_length=self._time_steps, trainable=False, weights=[embedding_matrix])(inputs)
 
         # LSTM part
         for i, n in enumerate(self._lstm_layer_sizes):

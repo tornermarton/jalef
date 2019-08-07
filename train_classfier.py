@@ -68,13 +68,13 @@ def create_simple_bert_classifier(pretrained_model_path, output_size, n_layers_t
 
 def get_training_data(preprocessor, parameters):
     train = pd.read_csv(os.path.join(parameters["dataset"]["path"], "train.csv"))
-    X_train, y_train = bp.fit_transform_classification(train["Text"], train["Label"])
+    X_train, y_train = preprocessor.fit_transform_classification(train["Text"], train["Label"])
 
     valid = pd.read_csv(os.path.join(parameters["dataset"]["path"], "validation.csv"))
-    X_valid, y_valid = bp.fit_transform_classification(valid["Text"], valid["Label"])
+    X_valid, y_valid = preprocessor.fit_transform_classification(valid["Text"], valid["Label"])
 
     test = pd.read_csv(os.path.join(parameters["dataset"]["path"], "test.csv"))
-    X_test, y_test = bp.fit_transform_classification(test["Text"], test["Label"])
+    X_test, y_test = preprocessor.fit_transform_classification(test["Text"], test["Label"])
 
     return X_train, y_train, X_valid, y_valid, X_test, y_test
 
@@ -95,8 +95,10 @@ def run_training(parameters):
     #                                       n_layers_to_finetune=parameters["model"]["n_layers_to_finetune"],
     #                                       max_seq_len=parameters["dataset"]["max_seq_len"],
     #                                       num_classes=len(y_train[0]))
+    
+    embedding_matrix = preprocessor.get_embedding_matrix(300, "models/word2vec/GoogleNews-vectors-negative300.bin.gz")
 
-    model = Word2VecClassifier(n_classes=parameters["model"]["n_intents"],
+    model = Word2VecClassifier(n_classes=parameters["dataset"]["n_intents"],
                                time_steps=parameters["dataset"]["max_seq_len"],
                                fc_layer_sizes=[256, 128],
                                lstm_layer_sizes=[128],
@@ -114,7 +116,7 @@ def run_training(parameters):
                                tensorboard_root=parameters["logging"]["tensorboard_root"]
                                )
 
-    model.compile(print_summary=True)
+    model.compile(print_summary=True, embedding_matrix=embedding_matrix)
 
     # Save model configuration
     with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:
