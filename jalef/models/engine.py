@@ -4,11 +4,12 @@ from datetime import datetime
 from typing import Any, List, Union
 import numpy as np
 
-import tensorflow as tf
 from tensorflow.python.keras.callbacks import Callback, ModelCheckpoint, EarlyStopping, TensorBoard
 # from enum import Enum, auto
 
 from tensorflow.python.keras.callbacks import History
+
+import tensorflow as tf
 
 
 class Core(ABC):
@@ -73,7 +74,7 @@ class Core(ABC):
 
         self._model.compile(optimizer=self._optimizer, loss=self._loss, metrics=self._metrics)
 
-    def add_callback(self, callback: tf.python.keras.callbacks.Callback) -> None:
+    def add_callback(self, callback: Callback) -> None:
         self._callbacks.append(callback)
 
     def train(self,
