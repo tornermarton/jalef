@@ -7,8 +7,8 @@
     "n_intents": 50
   },
   "model": {
-    "embedding": "word2vec",
-    "pretrained_model_path": "models/word2vec/GoogleNews-vectors-negative300.bin.gz",
+    "embedding": "bert",
+    "pretrained_model_path": "models/bert/",
     "output_size": 1024,
     "n_layers_to_finetune": 0
   },

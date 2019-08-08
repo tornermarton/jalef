@@ -46,7 +46,7 @@ class BertClassifier(SequenceClassifierCore):
         x = Bert(pretrained_model_path=self._pretrained_model_path,
                  output_size=self._output_size,
                  n_layers_to_finetune=self._n_layers_to_finetune,
-                 pooling=Bert.Pooling.ENCODER_OUT)(bert_inputs)
+                 pooling=Bert.Pooling.ENCODER_OUT)(inputs)
 
         # LSTM part
         for i, n in enumerate(self._lstm_layer_sizes):
