@@ -23,4 +23,4 @@ class AttentionBlock(tf.keras.Model):
         attention_mat = tf.keras.layers.Permute((2, 1), name='attention_matrix')(attention_probs)
         outputs = tf.keras.layers.Multiply(name='attention_mul')([inputs, attention_mat])
 
-        return attention_probs
+        return outputs

@@ -13,9 +13,21 @@ class Bert(tf.keras.layers.Layer):
 
     Search for pretrained models: https://tfhub.dev/
     (Here we use the actual best as default - Whole Word Masking, uncased version)
+
+    Output size: each input token has vector representation which has e.g. 1024 elements.
     """
 
     class Pooling(Enum):
+        """
+        Supported pooling types. In other words: which layer output to use.
+
+        FIRST: use the output of the classifier node - see BERT paper.
+        REDUCE_MEAN: use the output of the last encoder layer, the shape is reduced: each token has a single number
+        representation, take the mean of the corresponding outputs (e.g. output_size=1024) to get this number.
+        ENCODER_OUT: use the full output of the last encoder layer - use BERT as word embedding
+        (word embedding size = output_size, e.g. 1024)
+        """
+
         FIRST = auto()
         REDUCE_MEAN = auto()
         ENCODER_OUT = auto()
@@ -52,7 +64,7 @@ class Bert(tf.keras.layers.Layer):
             spec=self._pretrained_model_path, trainable=self._trainable, name="{}_module".format(self.name)
         )
 
-        # Remove unused layers
+        # Determine which layers to train (add them to trainable_vars)
         trainable_vars = self._bert_module.variables
         if self._pooling == Bert.Pooling.FIRST:
             trainable_vars = [var for var in trainable_vars if "/cls/" not in var.name]
@@ -93,9 +105,13 @@ class Bert(tf.keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         def mul_mask(x, m):
+            """Use the mask tokens to mask out the output where the input is a padding token(give 0 output)."""
+
             return x * tf.expand_dims(input=m, axis=-1)
 
         def masked_reduce_mean(x, m):
+            """Use the masking method and do the above described reduce mean operation."""
+
             return tf.reduce_sum(mul_mask(x=x, m=m), axis=1) / (
                     tf.reduce_sum(input_tensor=m, axis=1, keepdims=True) + 1e-10)
 
@@ -135,6 +151,8 @@ class Bert(tf.keras.layers.Layer):
         return input_shape[0], self.output_size
 
     def get_config(self):
+        """This method needs to be defined to save the layer config in a way it can be reloaded correctly."""
+
         config = super().get_config()
         config['pretrained_model_path'] = self._pretrained_model_path
         config['output_size'] = self._output_size
