@@ -7,31 +7,26 @@ from .engine import SequenceClassifierCore
 
 class Word2VecClassifier(SequenceClassifierCore):
 
+    """
+    A simple classifier architecture using Word2Vec word embeddings. Embeddings can be pretrained or also learned
+    during training process. (embedding_matrix=None)
+    """
+
     def __init__(self,
                  n_classes: List[int],
                  time_steps: int,
                  fc_layer_sizes: List[int],
                  lstm_layer_sizes: List[int],
                  name: str,
-                 optimizer: str = "adam",
-                 loss: str = "categorical_crossentropy",
-                 metrics: list = None,
-                 monitor: str = "val_acc",
-                 epochs: int = 100,
-                 batch_size: int = 256,
-                 shuffle: bool = True,
-                 patience: int = 10,
-                 min_delta: float = 0.005,
-                 weights_root: str = ".",
-                 tensorboard_root: str = None
+                 weights_root: str = "."
                  ):
 
-        super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name, optimizer, loss, metrics,
-                         monitor, epochs, batch_size, shuffle, patience, min_delta, weights_root, tensorboard_root)
+        super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name, weights_root)
 
     def _construct_model(self, print_summary: bool, embedding_matrix=None, **kwargs) -> None:
         inputs = tf.keras.layers.Input(shape=(self._time_steps,))
 
+        # If defined, use pretrained word embeddings
         if embedding_matrix is None:
             x = tf.keras.layers.Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
                                           input_length=self._time_steps, trainable=True)(inputs)

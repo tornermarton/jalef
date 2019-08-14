@@ -8,6 +8,8 @@ from .engine import SequenceClassifierCore
 
 class BertClassifier(SequenceClassifierCore):
 
+    """A simple classifier architecture using BERT as word embeddings."""
+
     def __init__(self,
                  pretrained_model_path,
                  output_size,
@@ -17,20 +19,9 @@ class BertClassifier(SequenceClassifierCore):
                  fc_layer_sizes: List[int],
                  lstm_layer_sizes: List[int],
                  name: str,
-                 optimizer: str = "adam",
-                 loss: str = "categorical_crossentropy",
-                 metrics: list = None,
-                 monitor: str = "val_acc",
-                 epochs: int = 100,
-                 batch_size: int = 256,
-                 shuffle: bool = True,
-                 patience: int = 10,
-                 min_delta: float = 0.005,
-                 weights_root: str = ".",
-                 tensorboard_root: str = None
+                 weights_root: str = "."
                  ):
-        super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name, optimizer, loss, metrics,
-                         monitor, epochs, batch_size, shuffle, patience, min_delta, weights_root, tensorboard_root)
+        super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name,  weights_root)
 
         self._pretrained_model_path = pretrained_model_path
         self._output_size = output_size

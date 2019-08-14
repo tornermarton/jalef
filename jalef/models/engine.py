@@ -5,76 +5,85 @@ from typing import Any, List, Union
 import numpy as np
 
 from tensorflow.python.keras.callbacks import Callback, ModelCheckpoint, EarlyStopping, TensorBoard
-# from enum import Enum, auto
-
 from tensorflow.python.keras.callbacks import History
 
-import tensorflow as tf
+from tensorflow.python.keras import Model
 
 
 class Core(ABC):
+    """
+    The core for all models used in this package, they must be derived from this class. This is a basic wrapper for
+    tf.keras models to generalize the training scripts and make it easier to switch between various models.
+
+    Usage:
+    In this example MyModel is derived from the Core class.
+
+    ...
+    model = MyModel("mymodel", "/app/logs/weights/")
+    model.compile(loss="categorical_crossentropy")
+    model.train(X_train, y_train, X_valid, y_valid, X_test, y_test)
+    ...
+
+    For more information please read the projects README.
+    """
 
     def __init__(self,
                  name: str = "jalef_model",
-                 optimizer: str = "adam",
-                 loss: str = "mse",
-                 metrics: List[str] = None,
-                 monitor: str = "val_acc",
-                 epochs: int = 10,
-                 batch_size: int = 128,
-                 shuffle: bool = True,
-                 patience: int = 10,
-                 min_delta: float = 0.005,
-                 weights_root: str = "",
-                 tensorboard_root: str = None
+                 weights_root: str = ""
                  ):
 
         self._name: str = name
-        self._optimizer: str = optimizer
-        self._loss: str = loss
-
-        if metrics is None:
-            metrics = ['loss']
-        self._metrics: List[str] = metrics
-
-        self._monitor: str = monitor
-
-        self._epochs: int = epochs
-        self._batch_size: int = batch_size
-        self._shuffle: bool = shuffle
-        self._patience: int = patience
-        self._min_delta: float = min_delta
-        self._weights_path: str = os.path.join(weights_root, name + "_weights.hdf5")
-
-        model_checkpoint: Callback = ModelCheckpoint(filepath=self._weights_path,
-                                                     monitor=self._monitor,
-                                                     verbose=1,
-                                                     save_best_only=True)
-
-        early_stopping: Callback = EarlyStopping(patience=self._patience,
-                                                 min_delta=self._min_delta,
-                                                 verbose=1, monitor=self._monitor)
-
-        self._callbacks: List[Callback] = [model_checkpoint, early_stopping]
-
-        if tensorboard_root is not None:
-            tensorboard = TensorBoard(
-                log_dir=os.path.join(tensorboard_root, name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")))
-
-            self._callbacks.append(tensorboard)
-
-        self._model: tf.keras.Model = None
+        self._callbacks: List[Callback] = []
+        self._weights_path: str = os.path.join(weights_root, self._name + "_weights.hdf5")
+        self._model: Model = None
 
     @abstractmethod
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
+        """
+        This method must be implemented in all models, it is used to define the model structure.
+        The method must set self._model to determine which architecture is to be compiled and trained.
+        """
+
         pass
 
-    def compile(self, print_summary: bool = True, **kwargs) -> None:
-        self._construct_model(print_summary=print_summary, **kwargs)
+    def compile(self,
+                optimizer: str = "adam",
+                loss: str = "mse",
+                metrics: List[str] = None,
+                monitor: str = "val_acc",
+                patience: int = 10,
+                min_delta: float = 0.005,
+                tensorboard_root: str = None,
+                print_summary: bool = True,
+                **kwargs) -> None:
 
-        self._model.compile(optimizer=self._optimizer, loss=self._loss, metrics=self._metrics)
+        """Construct and compile model. ModelCheckpoint and EarlyStopping are added automatically, tensorboard is
+        optional, if you don't want to use it leave tensorboard_root on None."""
+
+        # Create and add basic callbacks
+        model_checkpoint: Callback = ModelCheckpoint(filepath=self._weights_path,
+                                                     monitor=monitor,
+                                                     verbose=1,
+                                                     save_best_only=True)
+
+        early_stopping: Callback = EarlyStopping(patience=patience,
+                                                 min_delta=min_delta,
+                                                 verbose=1, monitor=monitor)
+
+        self._callbacks = [model_checkpoint, early_stopping]
+
+        if tensorboard_root is not None:
+            tensorboard = TensorBoard(
+                log_dir=os.path.join(tensorboard_root, self._name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")))
+
+            self._callbacks.append(tensorboard)
+
+        self._construct_model(print_summary=print_summary, **kwargs)
+        self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
     def add_callback(self, callback: Callback) -> None:
+        """Add custom callback to use when training model."""
+
         self._callbacks.append(callback)
 
     def train(self,
@@ -84,18 +93,23 @@ class Core(ABC):
               y_valid: np.ndarray,
               X_test: np.ndarray,
               y_test: np.ndarray,
+              epochs: int = 10,
+              batch_size: int = 32,
+              shuffle: bool = True,
               load_best_model_on_end: bool = True,
               evaluate_on_end: bool = True,
               save_predictions_on_end: bool = True,
-              predictions_path: str = True,
+              predictions_path: str = "predictions.npy",
               verbose: int = 0) -> History:
 
+        """Train the model, must be called after the compile method."""
+
         history: History = self._model.fit(X_train, y_train,
-                                           batch_size=self._batch_size,
-                                           epochs=self._epochs,
+                                           batch_size=batch_size,
+                                           epochs=epochs,
                                            verbose=verbose,
                                            validation_data=(X_valid, y_valid),
-                                           shuffle=self._shuffle,
+                                           shuffle=shuffle,
                                            callbacks=self._callbacks
                                            )
 
@@ -131,30 +145,23 @@ class Core(ABC):
 
 class AttentionModelCore(Core, ABC):
 
+    """Base class for all models using attention."""
+
     def __init__(self,
                  use_attention: bool = True,
                  use_shared_attention_vector: bool = True,
-                 name: str = "jalef_model",
-                 optimizer: str = "adam",
-                 loss: str = "mse",
-                 metrics: list = None,
-                 monitor: str = "val_acc",
-                 epochs: int = 10,
-                 batch_size: int = 128,
-                 shuffle: bool = True,
-                 patience: int = 10,
-                 min_delta: float = 0.005,
+                 name: str = "jalef_attention_model",
                  weights_root: str = "",
-                 tensorboard_root: str = None
                  ):
-        super().__init__(name, optimizer, loss, metrics, monitor, epochs, batch_size, shuffle, patience, min_delta,
-                         weights_root, tensorboard_root)
+        super().__init__(name, weights_root)
 
         self._use_attention: bool = use_attention
         self._use_shared_attention_vector: bool = use_shared_attention_vector
 
 
 class Seq2SeqCore(AttentionModelCore, ABC):
+
+    """Base class for all models using a Seq2Seq architecture."""
 
     def __init__(self,
                  time_steps: int = 50,
@@ -167,21 +174,10 @@ class Seq2SeqCore(AttentionModelCore, ABC):
                  target_embedding_matrix=None,
                  use_attention: bool = True,
                  use_shared_attention_vector: bool = True,
-                 name: str = "jalef_model",
-                 optimizer: str = "adam",
-                 loss: str = "mse",
-                 metrics: list = None,
-                 monitor: str = "val_acc",
-                 epochs: int = 10,
-                 batch_size: int = 128,
-                 shuffle: bool = True,
-                 patience: int = 10,
-                 min_delta: float = 0.005,
-                 weights_root: str = "",
-                 tensorboard_root: str = None
+                 name: str = "jalef_seq2seq_model",
+                 weights_root: str = ""
                  ):
-        super().__init__(use_attention, use_shared_attention_vector, name, optimizer, loss, metrics, monitor, epochs,
-                         batch_size, shuffle, patience, min_delta, weights_root, tensorboard_root)
+        super().__init__(use_attention, use_shared_attention_vector, name, weights_root)
 
         self._time_steps: int = time_steps
         self._source_vocab_size: int = source_vocab_size
@@ -194,8 +190,8 @@ class Seq2SeqCore(AttentionModelCore, ABC):
         self._target_embedding_matrix = target_embedding_matrix
 
         # Assigned at compilation
-        self._encoder_inf_model: tf.keras.Model = None
-        self._decoder_inf_model: tf.keras.Model = None
+        self._encoder_inf_model: Model = None
+        self._decoder_inf_model: Model = None
 
     @abstractmethod
     def _construct_train_model(self, print_summary: bool, **kwargs) -> None:
@@ -206,6 +202,9 @@ class Seq2SeqCore(AttentionModelCore, ABC):
         pass
 
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
+        """Here this method only calls the two method which are to define the model used at training and the other
+        one used at inference."""
+
         self._construct_train_model(print_summary=print_summary, **kwargs)
 
         self._construct_inference_model(print_summary=print_summary, **kwargs)
@@ -213,27 +212,18 @@ class Seq2SeqCore(AttentionModelCore, ABC):
 
 class SequenceClassifierCore(Core, ABC):
 
+    """Base class for all classifier models."""
+
     def __init__(self,
                  n_classes: List[int],
                  time_steps: int,
                  fc_layer_sizes: List[int],
                  lstm_layer_sizes: List[int],
-                 name: str = "jalef_model",
-                 optimizer: str = "adam",
-                 loss: str = "mse",
-                 metrics: list = None,
-                 monitor: str = "val_acc",
-                 epochs: int = 10,
-                 batch_size: int = 128,
-                 shuffle: bool = True,
-                 patience: int = 10,
-                 min_delta: float = 0.005,
-                 weights_root: str = "",
-                 tensorboard_root: str = None
+                 name: str = "jalef_classifier_model",
+                 weights_root: str = ""
                  ):
 
-        super().__init__(name, optimizer, loss, metrics, monitor, epochs, batch_size, shuffle, patience, min_delta,
-                         weights_root, tensorboard_root)
+        super().__init__(name, weights_root)
 
         self._n_classes: int = n_classes
         self._time_steps = time_steps
@@ -247,26 +237,3 @@ class SequenceClassifierCore(Core, ABC):
             lstm_layer_sizes = [lstm_layer_sizes]
 
         self._lstm_layer_sizes: List[int] = lstm_layer_sizes
-
-#
-# class CustomModelCore(Core, ABC):
-#     class Task(Enum):
-#         REGRESSION = auto()
-#         CLASSIFICATION = auto()
-#
-#     def __init__(self,
-#                  task: Task,
-#                  n_classes: int,
-#                  **kwargs):
-#
-#         super().__init__(**kwargs)
-#
-#         if task not in CustomModelCore.Task:
-#             raise ValueError("Task must be one of the supported (eg. .Task.REGRESSION)!")
-#
-#         self._task = task
-#
-#         if n_classes < 2:
-#             raise ValueError("Value of classes must be at least 2!")
-#
-#         self._n_classes = n_classes

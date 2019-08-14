@@ -9,6 +9,11 @@ from jalef.layers.attention import AttentionBlock
 
 
 class SimpleSeq2Seq(Seq2SeqCore):
+
+    """
+    A simple Seq2Seq architecture using Word2Vec word embeddings. The encoder can be set to use bidirectional LSTM.
+    """
+
     def __init__(self,
                  n_lstm_units: int,
                  dropout_rate: float,

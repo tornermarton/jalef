@@ -1,16 +1,18 @@
-from typing import Union, List
+from typing import List
 
-import numpy as np
 from tensorflow.python.keras.layers import Input, Embedding, Dense, LSTM, Bidirectional, TimeDistributed
 from tensorflow.python.keras.models import Model
 
-from .engine import Seq2SeqCore, CustomLSTMModelCore
+from .engine import Seq2SeqCore
 from jalef.layers import AttentionBlock
 
 
-class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
+class EncoderDecoderNMT(Seq2SeqCore):
 
-    def __init__(self,
+    """A simple Seq2Seq architecture implemented as an Encoder-Decoder model using Word2Vec word embeddings."""
+
+    def __init__(self,                 
+                 lstm_layer_sizes: List[int],
                  dropout_rate: float,
                  recurrent_dropout_rate: float,
                  **kwargs
@@ -18,6 +20,11 @@ class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
 
         super().__init__(**kwargs)
 
+        if type(lstm_layer_sizes) is not list:
+            lstm_layer_sizes = [lstm_layer_sizes]
+
+        self._lstm_layer_sizes: List[int] = lstm_layer_sizes
+        
         self._dropout_rate = dropout_rate
         self._recurrent_dropout_rate = recurrent_dropout_rate
 
@@ -32,20 +39,20 @@ class EncoderDecoderNMT(Seq2SeqCore, CustomLSTMModelCore):
                           weights=[self._source_embedding_matrix],
                           trainable=self._trainable_embeddings)(inputs)
 
-        for i in range(len(self._lstm_units_size)):
+        for i in range(len(self._lstm_layer_sizes)):
             if self._bidirectional_encoder:
-                x = Bidirectional(layer=LSTM(units=self._lstm_units_size[i], return_sequences=True,
+                x = Bidirectional(layer=LSTM(units=self._lstm_layer_sizes[i], return_sequences=True,
                                              dropout=self._dropout_rate,
                                              recurrent_dropout=self._recurrent_dropout_rate))(x)
             else:
-                x = LSTM(units=self._lstm_units_size[i], return_sequences=True,
+                x = LSTM(units=self._lstm_layer_sizes[i], return_sequences=True,
                          dropout=self._dropout_rate, recurrent_dropout=self._recurrent_dropout_rate)(x)
 
         if self._use_attention:
             x = AttentionBlock(use_shared_attention_vector=self._use_shared_attention_vector, name='attention')(x)
 
-        for i in range(len(self._lstm_units_size))[::-1]:
-            n_units = self._lstm_units_size[i]
+        for i in range(len(self._lstm_layer_sizes))[::-1]:
+            n_units = self._lstm_layer_sizes[i]
 
             if self._bidirectional_encoder:
                 n_units *= 2  # outputs are concatenated
