@@ -105,8 +105,6 @@ venv.bak/
 
 \.idea/
 
-tests/
-
 \.DS_Store
 
 data/lecture_text_data/

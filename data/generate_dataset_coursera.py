@@ -13,6 +13,8 @@ from IPython.display import display
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
+from jalef.preprocessing import train_validation_test_split
+
 PATTERNS_TO_REMOVE = ["\[(.*?)\]", ">>"]
 TEMP_FILE = ".temp_dataset.csv"
 
@@ -198,8 +200,10 @@ def create_dataset_from_temp(output_directory, min_sequence_length, n, do_splitt
         dataset = shuffle(dataset)
 
         # train-validation-test split
-        tmp, test = train_test_split(dataset, test_size=0.1, random_state=42, shuffle=False, stratify=None)
-        train, validation = train_test_split(tmp, test_size=0.2, random_state=42, shuffle=False, stratify=None)
+        train, validation, test = train_validation_test_split(dataset=dataset,
+                                                              validation_size=0.2,
+                                                              test_size=0.1
+                                                              )
 
         train.to_csv(path_or_buf=os.path.join(output_directory, "train.csv"), header=True, index=False)
         validation.to_csv(path_or_buf=os.path.join(output_directory, "validation.csv"), header=True, index=False)

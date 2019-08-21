@@ -21,19 +21,17 @@ terminal window is evenly good (will not kill the notebook process) just remembe
 login.
 
 ```bash
-./docker_run.sh
-#OR
-docker run --name 'tf-jupyter' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter
+docker run --name 'jalef' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter
 ```
 
 ## Run container on gpu-server (nvidia docker and CUDA required)
 
 ```bash
-docker run --runtime=nvidia --name 'tmarton-jalef' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter-gpu
+docker run --runtime=nvidia --name 'jalef' -p 8888:8888 -p 6006:6006 -v $(pwd):/app tornermarton/tf-jupyter-gpu
 ```
 
 ## Start tensorboard 
 
 ```bash
-docker exec -it tmarton-jalef bash -c "tensorboard --logdir /app/logs/tensorboard"
+docker exec -it jalef bash -c "tensorboard --logdir /app/logs/tensorboard"
 ```
