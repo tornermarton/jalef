@@ -1,3 +1,5 @@
+from typing import List
+
 import tensorflow_hub as hub
 import tensorflow as tf
 from bert.tokenization import FullTokenizer
@@ -7,16 +9,14 @@ from jalef.preprocessing.preprocessor import Preprocessor
 
 
 class BertPreprocessor(Preprocessor):
-    """
-    This class can be used to do all the work to create the input and output for a Neural Network using BERT
-    as embedding.
+    """Preprocessor for BERT embedding.
 
-    Input - list of text sequences
-    Output - list of network inputs and outputs (one hot encoded)
+    This class can be used to do all the work to create the inputs (and outputs) of a Neural Network using BERT
+    as embedding. Currently only single sequence classification is supported.
     """
 
     def __init__(self,
-                 pretrained_model_path,
+                 pretrained_model_path: str,
                  **kwargs):
 
         super().__init__(**kwargs)
@@ -31,6 +31,7 @@ class BertPreprocessor(Preprocessor):
                 ]
             )
 
+        # Create the tokenizer with the vocabulary of the pretrained model
         self._tokenizer = FullTokenizer(vocab_file=vocab_file, do_lower_case=do_lower_case)
 
         basic_tokens = self._tokenizer.convert_tokens_to_ids(["[CLS]", "[SEP]"])
@@ -38,11 +39,21 @@ class BertPreprocessor(Preprocessor):
         self._SEP_token = basic_tokens[1]
 
     def _padding_sentence(self):
-        # this function returns a zero length sentence to pad last batch
+        """Return a zero length sentence to pad last batch.
+
+        :return: Three sequences of zeros (tokens, masks, segment ids).
+        """
+
         return [0] * self._max_seq_len, [0] * self._max_seq_len, [0] * self._max_seq_len
 
-    def tokenize(self, text):
-        """Converts a single `InputExample` into a single `InputFeatures`."""
+    def tokenize(self, text: str):
+        """Convert a sequence of words into a sequence of tokens and also compute the masking- and segment ids.
+
+        For further details please read BERT paper.
+
+        :param text: The sequence of words.
+        :return: The sequence of tokens, masks and segment ids.
+        """
 
         input_ids = [0] * self._max_seq_len
         input_mask = [0] * self._max_seq_len
@@ -75,11 +86,27 @@ class BertPreprocessor(Preprocessor):
 
         return input_ids, input_mask, input_segment_ids
 
-    def fit(self, texts):
-        # this function does nothing in case of Bert embedding but must be implemented
-        pass
+    def fit(self, texts: List[str]) -> 'BertPreprocessor':
+        """This function does nothing in case of BERT but must be implemented.
 
-    def transform(self, texts):
+        :param texts: -
+        :return: self
+        """
+
+        return self
+
+    def transform(self, texts: List[str]) -> np.ndarray:
+        """Transform sequences of words into sequences of tokens, masks and segment ids.
+
+        Masks are used to separate valid and padding tokens. Here the segment ids are always one since the whole
+        sequence belongs together.
+
+        For further details please read BERT paper.
+
+        :param texts: The sequences of texts.
+        :return: The sequences of tokens, masks and segment ids.
+        """
+
         input_ids, input_masks, segment_ids = [], [], []
 
         for i, text in enumerate(texts):
@@ -90,5 +117,11 @@ class BertPreprocessor(Preprocessor):
 
         return np.array([np.array(input_ids), np.array(input_masks), np.array(segment_ids)])
 
-    def inverse_transform(self, sequences):
+    def inverse_transform(self, sequences: np.ndarray):
+        """Transform sequences of tokens back to sequences of words (sentences).
+
+        :param sequences: The sequences of tokens.
+        :return: The sequences of words
+        """
+
         return self._tokenizer.convert_ids_to_tokens(sequences)
