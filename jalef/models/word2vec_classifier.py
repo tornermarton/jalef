@@ -6,11 +6,7 @@ from .engine import SequenceClassifierCore
 
 
 class Word2VecClassifier(SequenceClassifierCore):
-
-    """
-    A simple classifier architecture using Word2Vec word embeddings. Embeddings can be pretrained or also learned
-    during training process. (embedding_matrix=None)
-    """
+    """A simple classifier architecture using Word2Vec word embeddings."""
 
     def __init__(self,
                  n_classes: List[int],
@@ -24,6 +20,17 @@ class Word2VecClassifier(SequenceClassifierCore):
         super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name, weights_root)
 
     def _construct_model(self, print_summary: bool, embedding_matrix=None, **kwargs) -> None:
+        """Construct the model architecture.
+
+        Embeddings can be pretrained or also learned during training process.
+
+        :param print_summary: Print model summary after compilation.
+        :param embedding_matrix: The embedding matrix to use, if None the weights start as random vectors and are
+        learned during training.
+        :param kwargs: -
+        :return: -
+        """
+
         inputs = tf.keras.layers.Input(shape=(self._time_steps,))
 
         # If defined, use pretrained word embeddings

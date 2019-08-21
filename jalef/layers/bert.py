@@ -5,8 +5,7 @@ from enum import Enum, auto
 
 
 class Bert(tf.keras.layers.Layer):
-    """
-    This is a custom keras layer integrating Bert from tf-hub.
+    """Custom keras layer integrating Bert from tf-hub.
 
     Source: https://towardsdatascience.com/bert-in-keras-with-tensorflow-hub-76bcbc9417b
     Bert: https://arxiv.org/pdf/1810.04805.pdf
@@ -18,8 +17,7 @@ class Bert(tf.keras.layers.Layer):
     """
 
     class Pooling(Enum):
-        """
-        Supported pooling types. In other words: which layer output to use.
+        """Supported pooling types. In other words: which layer output to use.
 
         FIRST: use the output of the classifier node - see BERT paper.
         REDUCE_MEAN: use the output of the last encoder layer, the shape is reduced: each token has a single number
@@ -60,6 +58,8 @@ class Bert(tf.keras.layers.Layer):
         super().__init__(**kwargs)
 
     def build(self, input_shape):
+        """Load the pretrained model and select which layers to train/fine-tune."""
+
         self._bert_module = hub.Module(
             spec=self._pretrained_model_path, trainable=self._trainable, name="{}_module".format(self.name)
         )

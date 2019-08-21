@@ -7,7 +7,6 @@ from .engine import SequenceClassifierCore
 
 
 class BertClassifier(SequenceClassifierCore):
-
     """A simple classifier architecture using BERT as word embeddings."""
 
     def __init__(self,
@@ -28,6 +27,13 @@ class BertClassifier(SequenceClassifierCore):
         self._n_layers_to_finetune = n_layers_to_finetune
 
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
+        """Construct the model architecture using BERT as embedding.
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
+        """
+
         in_id = tf.keras.layers.Input(shape=(self._time_steps,), name="input_ids")
         in_mask = tf.keras.layers.Input(shape=(self._time_steps,), name="input_masks")
         in_segment = tf.keras.layers.Input(shape=(self._time_steps,), name="segment_ids")

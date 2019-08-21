@@ -8,10 +8,9 @@ from jalef.layers import AttentionBlock
 
 
 class EncoderDecoderNMT(Seq2SeqCore):
-
     """A simple Seq2Seq architecture implemented as an Encoder-Decoder model using Word2Vec word embeddings."""
 
-    def __init__(self,                 
+    def __init__(self,
                  lstm_layer_sizes: List[int],
                  dropout_rate: float,
                  recurrent_dropout_rate: float,
@@ -24,11 +23,18 @@ class EncoderDecoderNMT(Seq2SeqCore):
             lstm_layer_sizes = [lstm_layer_sizes]
 
         self._lstm_layer_sizes: List[int] = lstm_layer_sizes
-        
+
         self._dropout_rate = dropout_rate
         self._recurrent_dropout_rate = recurrent_dropout_rate
 
     def _construct_train_model(self, print_summary: bool, **kwargs) -> None:
+        """Construct the model.
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
+        """
+
         inputs = Input(shape=(self._time_steps,))
 
         if self._source_embedding_matrix is None:
@@ -64,5 +70,11 @@ class EncoderDecoderNMT(Seq2SeqCore):
         self._model = Model(inputs=inputs, outputs=outputs)
 
     def _construct_inference_model(self, print_summary: bool, **kwargs):
-        # Here no inference model is needed
+        """No inference model needed.
+
+        :param print_summary: -
+        :param kwargs: -
+        :return: -
+        """
+
         pass

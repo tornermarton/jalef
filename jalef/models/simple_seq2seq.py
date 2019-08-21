@@ -9,9 +9,9 @@ from jalef.layers.attention import AttentionBlock
 
 
 class SimpleSeq2Seq(Seq2SeqCore):
+    """A simple Seq2Seq architecture using Word2Vec word embeddings.
 
-    """
-    A simple Seq2Seq architecture using Word2Vec word embeddings. The encoder can be set to use bidirectional LSTM.
+    The encoder can be set to use bidirectional LSTM.
     """
 
     def __init__(self,
@@ -38,6 +38,13 @@ class SimpleSeq2Seq(Seq2SeqCore):
         self._decoder_outputs = None
 
     def _construct_train_model(self, print_summary: bool, **kwargs) -> None:
+        """Construct the model used at training.
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
+        """
+
         # Encoder
 
         self._encoder_inputs = Input(shape=(self._time_steps,), name='encoder_inputs')
@@ -108,6 +115,13 @@ class SimpleSeq2Seq(Seq2SeqCore):
             self._model.summary()
 
     def _construct_inference_model(self, print_summary: bool, **kwargs) -> None:
+        """Construct the model used at inference (e.g. use in production).
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
+        """
+
         # Encoder
 
         self._encoder_inf_model = Model(inputs=self._encoder_inputs, outputs=self._encoder_states)

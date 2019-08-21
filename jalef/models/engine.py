@@ -11,9 +11,10 @@ from tensorflow.python.keras import Model
 
 
 class Core(ABC):
-    """
-    The core for all models used in this package, they must be derived from this class. This is a basic wrapper for
-    tf.keras models to generalize the training scripts and make it easier to switch between various models.
+    """The core for all models used in this package.
+
+    This is a basic wrapper for tf.keras models to generalize the training scripts and make it easier to switch
+    between various models.
 
     Usage:
     In this example MyModel is derived from the Core class.
@@ -39,9 +40,14 @@ class Core(ABC):
 
     @abstractmethod
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
-        """
+        """Construct the model architecture.
+
         This method must be implemented in all models, it is used to define the model structure.
         The method must set self._model to determine which architecture is to be compiled and trained.
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
         """
 
         pass
@@ -57,8 +63,18 @@ class Core(ABC):
                 print_summary: bool = True,
                 **kwargs) -> None:
 
-        """Construct and compile model. ModelCheckpoint and EarlyStopping are added automatically, tensorboard is
-        optional, if you don't want to use it leave tensorboard_root on None."""
+        """Construct and compile model.
+
+        ModelCheckpoint and EarlyStopping are added automatically, tensorboard is
+        optional, if you don't want to use it leave tensorboard_root on None.
+
+        Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
+
+        :param tensorboard_root: The root directory of tensorboard logs. (e.g. /app/logs/tensorboard)
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: Further parameters passed to the _constuct_model method which is class specific.
+        :return: -
+        """
 
         # Create and add basic callbacks
         model_checkpoint: Callback = ModelCheckpoint(filepath=self._weights_path,
@@ -102,6 +118,18 @@ class Core(ABC):
               predictions_path: str = "predictions.npy",
               verbose: int = 0) -> History:
 
+        """Start training process, run tests and save results.
+
+        Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
+
+        :param load_best_model_on_end: Load the best model back after the training is finished.
+        :param evaluate_on_end: Do the evaluation when the training is finished (with best model).
+        :param save_predictions_on_end: Save the network outputs for the test set (with best model).
+        :param predictions_path: The full path where to save the predictions.
+        :param verbose: Set the verbosity.
+        :return: Network history.
+        """
+
         """Train the model, must be called after the compile method."""
 
         history: History = self._model.fit(X_train, y_train,
@@ -113,7 +141,7 @@ class Core(ABC):
                                            callbacks=self._callbacks
                                            )
 
-        if load_best_model_on_end:
+        if load_best_model_on_end or save_predictions_on_end or evaluate_on_end:
             self.load_best_model()
 
         if evaluate_on_end:
@@ -125,16 +153,40 @@ class Core(ABC):
         return history
 
     def load_weights_from_file(self, path: str) -> None:
+        """Load the network weights from a path.
+
+        :param path: The full path of the weights file.
+        :return: -
+        """
         self._model.load_weights(filepath=path)
 
     def load_best_model(self) -> None:
+        """Load back the best model. Only works after training!
+
+        :return: -
+        """
         self.load_weights_from_file(path=self._weights_path)
 
     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Any:
+        """Do the evaluation process.
+
+        :param X_test: The test inputs.
+        :param y_test: The test outputs (target).
+        :return: The output of the keras evaluate method.
+        """
+
         return self._model.evaluate(x=X_test, y=y_test)
 
     def predict(self, X_test: Union[np.ndarray, List[np.ndarray]], save_predictions: bool = False,
                 path: str = "") -> np.ndarray:
+        """Return the predictions for the given set. If desired the predictions are saved automatically.
+
+        :param X_test: The test inputs.
+        :param save_predictions: Save predictions to the given file.
+        :param path: The full path to the output file.
+        :return: The predictions.
+        """
+
         preds = self._model.predict(x=X_test)
 
         if save_predictions:
@@ -144,7 +196,6 @@ class Core(ABC):
 
 
 class AttentionModelCore(Core, ABC):
-
     """Base class for all models using attention."""
 
     def __init__(self,
@@ -160,7 +211,6 @@ class AttentionModelCore(Core, ABC):
 
 
 class Seq2SeqCore(AttentionModelCore, ABC):
-
     """Base class for all models using a Seq2Seq architecture."""
 
     def __init__(self,
@@ -195,10 +245,24 @@ class Seq2SeqCore(AttentionModelCore, ABC):
 
     @abstractmethod
     def _construct_train_model(self, print_summary: bool, **kwargs) -> None:
+        """Construct the model used at training.
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
+        """
+
         pass
 
     @abstractmethod
     def _construct_inference_model(self, print_summary: bool, **kwargs) -> None:
+        """Construct the model used at inference (e.g. use in production).
+
+        :param print_summary: Print model summary after compilation.
+        :param kwargs: -
+        :return: -
+        """
+
         pass
 
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
@@ -211,7 +275,6 @@ class Seq2SeqCore(AttentionModelCore, ABC):
 
 
 class SequenceClassifierCore(Core, ABC):
-
     """Base class for all classifier models."""
 
     def __init__(self,
