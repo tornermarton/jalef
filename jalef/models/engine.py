@@ -47,7 +47,7 @@ class Core(ABC):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         pass
@@ -73,7 +73,7 @@ class Core(ABC):
         :param tensorboard_root: The root directory of tensorboard logs. (e.g. /app/logs/tensorboard)
         :param print_summary: Print model summary after compilation.
         :param kwargs: Further parameters passed to the _constuct_model method which is class specific.
-        :return: -
+        :return: None
         """
 
         # Create and add basic callbacks
@@ -156,14 +156,14 @@ class Core(ABC):
         """Load the network weights from a path.
 
         :param path: The full path of the weights file.
-        :return: -
+        :return: None
         """
         self._model.load_weights(filepath=path)
 
     def load_best_model(self) -> None:
         """Load back the best model. Only works after training!
 
-        :return: -
+        :return: None
         """
         self.load_weights_from_file(path=self._weights_path)
 
@@ -249,7 +249,7 @@ class Seq2SeqCore(AttentionModelCore, ABC):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         pass
@@ -260,7 +260,7 @@ class Seq2SeqCore(AttentionModelCore, ABC):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         pass

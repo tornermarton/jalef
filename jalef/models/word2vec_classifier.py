@@ -28,7 +28,7 @@ class Word2VecClassifier(SequenceClassifierCore):
         :param embedding_matrix: The embedding matrix to use, if None the weights start as random vectors and are
         learned during training.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         inputs = tf.keras.layers.Input(shape=(self._time_steps,))

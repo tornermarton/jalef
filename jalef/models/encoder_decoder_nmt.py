@@ -32,7 +32,7 @@ class EncoderDecoderNMT(Seq2SeqCore):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         inputs = Input(shape=(self._time_steps,))
@@ -74,7 +74,7 @@ class EncoderDecoderNMT(Seq2SeqCore):
 
         :param print_summary: -
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         pass

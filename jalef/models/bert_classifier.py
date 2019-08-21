@@ -31,7 +31,7 @@ class BertClassifier(SequenceClassifierCore):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         in_id = tf.keras.layers.Input(shape=(self._time_steps,), name="input_ids")

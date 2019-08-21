@@ -1,7 +1,15 @@
 from sklearn import metrics
+from pandas import DataFrame
+import numpy as np
 
 
-def display_word_counts(df):
+def display_word_counts(df: DataFrame) -> None:
+    """Display the statistics of the word sequences in a pandas DataFrame.
+
+    :param df: The pandas DataFrame.
+    :return: None
+    """
+
     min_word_count = min(df["Word_count"])
     min_char_count = min(df["Character_count"])
 
@@ -15,7 +23,14 @@ def display_word_counts(df):
     print("Min number of characters in a sentence: {}".format(min_char_count))
 
 
-def evaluate_result(y_true, y_pred):
+def evaluate_result(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
+    """Return the evaluation metrics (accuracy, precision, recall and f1 score) of the test.
+
+    :param y_true: The target values.
+    :param y_pred: The predicted values.
+    :return: The metrics in a dictionary.
+    """
+
     accuracy = metrics.accuracy_score(y_true, y_pred)
     precision = metrics.precision_score(y_true, y_pred, average='weighted')
     recall = metrics.recall_score(y_true, y_pred, average='weighted')

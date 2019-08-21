@@ -42,7 +42,7 @@ class SimpleSeq2Seq(Seq2SeqCore):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         # Encoder
@@ -119,7 +119,7 @@ class SimpleSeq2Seq(Seq2SeqCore):
 
         :param print_summary: Print model summary after compilation.
         :param kwargs: -
-        :return: -
+        :return: None
         """
 
         # Encoder

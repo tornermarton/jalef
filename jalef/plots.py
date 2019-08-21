@@ -8,7 +8,12 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.metrics import confusion_matrix
 
 
-def enable_plotly_in_cell():
+def enable_plotly_in_cell() -> None:
+    """In case of using Plotly for visualization this method must be called to properly display plots in notebooks.
+
+    :return: None
+    """
+
     display(HTML('''<script src="/static/components/requirejs/require.js"></script>'''))
     init_notebook_mode(connected=False)
 
@@ -19,11 +24,21 @@ def plot_confusion_matrix(y_true, y_pred,
                           cmap=plt.cm.get_cmap("Blues"),
                           show_fig=True,
                           save_fig=False,
-                          filename=""):
+                          filename="") -> None:
+
+    """Plot the confusion matrix.
+
+    :param y_true: The target values.
+    :param y_pred: The predicted values.
+    :param normalize: Use normalization.
+    :param title: The title of the plot.
+    :param cmap: Colormap to use.
+    :param show_fig: Show the figure.
+    :param save_fig: Save the figure to the following path.
+    :param filename: The full path to the saved file.
+    :return: None
     """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
+
     if not title:
         if normalize:
             title = 'Normalized confusion matrix'
