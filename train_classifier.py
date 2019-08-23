@@ -58,15 +58,21 @@ def get_training_data(preprocessor, parameters):
 def run_training(parameters):
     name = "dataset=" + parameters["dataset"]["name"] + "_embedding=" + parameters["model"]["embedding"] + \
            "_intents=" + str(parameters["dataset"]["n_intents"])
+    
+    print("Starting...")
 
     # preprocessor = Word2VecPreprocessor(max_sequence_length=parameters["dataset"]["max_seq_len"])
     preprocessor = BertPreprocessor(pretrained_model_path=parameters["model"]["pretrained_model_path"],
                                     max_sequence_length=parameters["dataset"]["max_seq_len"])
+    
+    print("Loading dataset...")
 
     X_train, y_train, X_valid, y_valid, X_test, y_test = get_training_data(preprocessor=preprocessor,
                                                                            parameters=parameters)
 
     # embedding_matrix = preprocessor.get_embedding_matrix(300, parameters["model"]["pretrained_model_path"])
+
+    print("Compiling model...")
 
     model = BertClassifier(
         pretrained_model_path=parameters["model"]["pretrained_model_path"],
@@ -96,6 +102,8 @@ def run_training(parameters):
     with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:
         json.dump(obj=model._model.to_json(), fp=file)
 
+    print("Start training...")
+
     initialize_vars(sess=sess)
     model.train(
         X_train=[X_train[0], X_train[1], X_train[2]],
@@ -113,6 +121,8 @@ def run_training(parameters):
         predictions_path=os.path.join("data/coursera_predictions/", name + "_predictions.npy"),
         verbose=1
     )
+
+    print("Done.")
 
 
 def main(args):
