@@ -4,3 +4,5 @@ sudo
 git
 vim
 htop
+openssh-server
+supervisor

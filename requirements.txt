@@ -5,9 +5,10 @@ tensorflow-hub
 gensim
 numpy
 pandas
+sklearn
 matplotlib
 cufflinks
-plotly==3.6.1
-sklearn
+plotly==4.1.0
+chart-studio
 ipython==7.7.0
 prompt-toolkit==2.0.9

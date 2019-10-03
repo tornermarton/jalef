@@ -9,15 +9,37 @@ WORKDIR /
 COPY requirements.txt /
 COPY requirements.system /
 
-RUN apt-get update && pip install --upgrade pip && mkdir /app/
-RUN xargs apt-get install < requirements.system
+RUN apt-get update && pip install --upgrade pip
+RUN xargs apt-get install -y < requirements.system
 RUN pip install --trusted-host pypi.python.org -r ../requirements.txt
-# this is a fix for deep2 server
-RUN pip uninstall -y ipython prompt_toolkit && pip install ipython prompt_toolkit
 
-RUN apt-get install -y git
+# correct cufflinks imports (plotly.plotly deprecated)
+RUN sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/tools.py \
+    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/plotlytools.py \
+    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/__init__.py
+
+RUN mkdir /app
+
+# configure ssh server
+RUN mkdir /var/run/sshd
+RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+# SSH login fix. Otherwise user is kicked off after login
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+
+RUN echo 'root:nehezjelszo' | chpasswd
+
+# configure supervisor
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8888
 EXPOSE 6006
+EXPOSE 22
 
-CMD ["bash", "-c", "source /etc/bash.bashrc & jupyter notebook --notebook-dir=/app/notebooks --ip 0.0.0.0 --no-browser --allow-root"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
