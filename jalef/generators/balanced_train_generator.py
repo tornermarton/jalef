@@ -14,25 +14,29 @@ class BalancedTrainGenerator(tf.keras.utils.Sequence):
                  max_alpha: float = 0.8
                  ):
 
-        assert len(inputs) == len(outputs), "Length of inputs and outputs must be the same!"
+        if type(inputs) is list:
+            self._inputs = inputs
+        else:
+            self._inputs = [inputs]
 
-        self._inputs = inputs
+        self._lut = np.empty([len(inputs[0])], dtype=[("index", int, 1),
+                                                      ("class", int, 1),
+                                                      ("prob", np.float, 1)])
+        self._lut["index"] = np.arange(len(inputs[0]))
+
         self._outputs = outputs
 
-        self._n_classes = len(np.unique(outputs))
+        if type(outputs[0]) is int:
+            self._lut["class"] = outputs
+        else:
+            self._lut["class"] = np.argmax(outputs, axis=1)
+
+        self._n_classes = len(np.unique(self._lut["class"]))
+
+        assert len(self._inputs[0]) == len(self._outputs), "Length of inputs and outputs must be the same!"
+
         # start with equal probabilities
         self._probs = [1 / self._n_classes] * self._n_classes
-
-        self._lut = np.empty([len(inputs)], dtype=[("index", int, 1),
-                                                   ("class", int, 1),
-                                                   ("prob", np.float, 1)])
-        self._lut["index"] = np.arange(len(inputs))
-
-        # if type(outputs[0]) == int:
-        self._lut["class"] = outputs
-        # else:
-        #  self._lut["class"] = np.argmax(outputs, axis=1)
-
         self._lut["prob"] = softmax([1 / self._n_classes] * len(self._lut))
 
         self._alpha = 0
@@ -57,10 +61,12 @@ class BalancedTrainGenerator(tf.keras.utils.Sequence):
 
         self._epoch_counter = 0
 
-    # def __getitem__(self, index):
-    #    return np.random.choice(inputs, self._batch_size, p=self._lut["prob"], replace=False)
+    def __getitem_normal(self, index):
+        slice_ = slice(index * self._batch_size, (index + 1) * self._batch_size, 1)
+        return [i[slice_] for i in self._inputs], self._outputs[slice_]
+        # return [i for i in range(slice_.start, slice_.stop)], {}
 
-    def __getitem__(self, index):
+    def __getitem_based_on_probs(self):
         chs = np.random.choice(np.arange(self._n_classes), self._batch_size, p=self._probs)
 
         unique, counts = np.unique(chs, return_counts=True)
@@ -69,19 +75,25 @@ class BalancedTrainGenerator(tf.keras.utils.Sequence):
 
         for class_, count in zip(unique, counts):
             chs = np.random.choice(self._lut["index"][self._lut["class"] == class_], count, replace=False)
-
             res.extend(chs)
 
         np.random.shuffle(res)
 
-        return self._inputs[res], self._outputs[res]
+        return [i[res] for i in self._inputs], self._outputs[res]
+        # return res, dict(zip(unique, counts))
+
+    def __getitem__(self, index):
+        if self._epoch_counter >= self._alpha_growth_start:
+            return self.__getitem_based_on_probs()
+        else:
+            return self.__getitem_normal(index)
 
     def __len__(self):
-        """Denotes the number of batches per epoch"""
-        return int(np.floor(len(self._inputs) / self._batch_size))
+        'Denotes the number of batches per epoch'
+        return int(np.floor(len(self._inputs[0]) / self._batch_size))
 
     def on_epoch_end(self):
-        """Updates indexes after each epoch"""
+        'Updates indexes after each epoch'
 
         if self._epoch_counter == self._alpha_growth_start or self._epoch_counter > self._alpha_growth_start \
                 and (self._epoch_counter - self._alpha_growth_start) % self._alpha_growth_freq == 0 \
