@@ -95,7 +95,7 @@ class BertPreprocessor(Preprocessor):
 
         return self
 
-    def transform(self, texts: List[str]) -> np.ndarray:
+    def transform(self, texts: List[str]) -> list:
         """Transform sequences of words into sequences of tokens, masks and segment ids.
 
         Masks are used to separate valid and padding tokens. Here the segment ids are always one since the whole
@@ -115,7 +115,7 @@ class BertPreprocessor(Preprocessor):
             input_masks.append(input_mask)
             segment_ids.append(segment_id)
 
-        return np.array([np.array(input_ids), np.array(input_masks), np.array(segment_ids)])
+        return [np.array(input_ids), np.array(input_masks), np.array(segment_ids)]
 
     def inverse_transform(self, sequences: np.ndarray):
         """Transform sequences of tokens back to sequences of words (sentences).
