@@ -83,3 +83,5 @@ def plot_confusion_matrix(y_true, y_pred,
 
     if show_fig:
         plt.show()
+
+    plt.close()

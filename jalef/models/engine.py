@@ -152,6 +152,51 @@ class Core(ABC):
 
         return history
 
+    def train_generator(self,
+              generator,
+              X_valid: np.ndarray,
+              y_valid: np.ndarray,
+              X_test: np.ndarray,
+              y_test: np.ndarray,
+              epochs: int = 10,
+              load_best_model_on_end: bool = True,
+              evaluate_on_end: bool = True,
+              save_predictions_on_end: bool = True,
+              predictions_path: str = "predictions.npy",
+              verbose: int = 0) -> History:
+
+        """Start training process, run tests and save results.
+
+        Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
+
+        :param load_best_model_on_end: Load the best model back after the training is finished.
+        :param evaluate_on_end: Do the evaluation when the training is finished (with best model).
+        :param save_predictions_on_end: Save the network outputs for the test set (with best model).
+        :param predictions_path: The full path where to save the predictions.
+        :param verbose: Set the verbosity.
+        :return: Network history.
+        """
+
+        """Train the model, must be called after the compile method."""
+
+        history: History = self._model.fit_generator(generator=generator,
+                                                     epochs=epochs,
+                                                     verbose=verbose,
+                                                     validation_data=(X_valid, y_valid),
+                                                     callbacks=self._callbacks
+                                                     )
+
+        if load_best_model_on_end or save_predictions_on_end or evaluate_on_end:
+            self.load_best_model()
+
+        if evaluate_on_end:
+            self.evaluate(X_test=X_test, y_test=y_test)
+
+        if save_predictions_on_end:
+            self.predict(X_test=X_test, save_predictions=True, path=predictions_path)
+
+        return history
+
     def load_weights_from_file(self, path: str) -> None:
         """Load the network weights from a path.
 

@@ -36,7 +36,7 @@ class BalancedTrainGenerator(tf.keras.utils.Sequence):
         assert len(self._inputs[0]) == len(self._outputs), "Length of inputs and outputs must be the same!"
 
         # start with equal probabilities
-        self._probs = [1 / self._n_classes] * self._n_classes
+        self._probs = np.array([1 / self._n_classes] * self._n_classes)
         self._lut["prob"] = softmax([1 / self._n_classes] * len(self._lut))
 
         self._alpha = 0
@@ -103,6 +103,9 @@ class BalancedTrainGenerator(tf.keras.utils.Sequence):
         np.random.shuffle(self._lut)
 
         self._epoch_counter += 1
+
+    def get_probs(self):
+        return self._probs
 
     def update_probs(self, errors_per_class):
         assert len(errors_per_class) == len(self._probs)
