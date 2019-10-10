@@ -9,11 +9,11 @@ import pandas as pd
 
 import tensorflow as tf
 
-from jalef.preprocessing import BertPreprocessor, Word2VecPreprocessor
+from jalef.preprocessing import BertPreprocessor
 from jalef.layers import Bert
-from jalef.models import Word2VecClassifier, BertClassifier
+from jalef.models import BertClassifier
 from jalef.generators import BalancedTrainGenerator
-from jalef.callbacks import BTGCallback
+from jalef.callbacks import *
 
 # set random seeds
 np.random.seed(1234)
@@ -63,6 +63,10 @@ def run_training(parameters):
     name = "dataset=" + parameters["dataset"]["name"] + "_embedding=" + parameters["model"]["embedding"] + \
            "_intents=" + str(parameters["dataset"]["n_intents"])
 
+    save_dir = os.path.join(parameters["logging"]["eval_root"], name)
+
+    os.mkdir(save_dir)
+
     print("Starting...")
 
     preprocessor = BertPreprocessor(pretrained_model_path=parameters["model"]["pretrained_model_path"],
@@ -74,21 +78,6 @@ def run_training(parameters):
                                                                            parameters=parameters)
 
     print("Compiling model...")
-
-    btg = BalancedTrainGenerator(inputs=X_train,
-                                 outputs=y_train,
-                                 alpha_growth_rate=0.1,
-                                 alpha_growth_start=5,
-                                 alpha_growth_freq=1,
-                                 batch_size=128
-                                 )
-
-    btg_cb = BTGCallback(validation_data=(X_valid, np.argmax(y_valid, axis=1)),
-                         lookup_table=lut,
-                         generator_instance=btg,
-                         batch_size=128,
-                         test_dir_path=os.path.join(parameters["logging"]["eval_root"], name)
-                         )
 
     model = BertClassifier(
         pretrained_model_path=parameters["model"]["pretrained_model_path"],
@@ -102,8 +91,6 @@ def run_training(parameters):
         weights_root=parameters["logging"]["weights_root"],
     )
 
-    model.add_callback(btg_cb)
-
     model.compile(
         optimizer=parameters["hyperparameters"]["optimizer"],
         loss=parameters["hyperparameters"]["loss"],
@@ -114,6 +101,34 @@ def run_training(parameters):
         tensorboard_root=parameters["logging"]["tensorboard_root"],
         print_summary=True
     )
+
+    svr = StoreValidationResults(x=X_valid,
+                                 y=y_valid
+                                 )
+
+    model.add_callback(svr)
+
+    scm = SaveConfusionMatrix(svr_instance=svr,
+                              title=name + "_epoch={}",
+                              save_directory=save_dir
+                              )
+
+    model.add_callback(scm)
+
+    btg = BalancedTrainGenerator(inputs=X_train,
+                                 outputs=y_train,
+                                 alpha_growth_rate=0.1,
+                                 alpha_growth_start=5,
+                                 alpha_growth_freq=1,
+                                 batch_size=parameters["hyperparameters"]["batch_size"]
+                                 )
+
+    btg_cb = BTGCallback(svr_instance=svr,
+                         generator_instance=btg,
+                         test_dir_path=save_dir
+                         )
+
+    model.add_callback(btg_cb)
 
     # Save model configuration
     with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:

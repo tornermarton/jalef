@@ -59,7 +59,7 @@ class BalancedTrainGenerator(tf.keras.utils.Sequence):
 
         self._batch_size = batch_size
 
-        self._epoch_counter = 0
+        self._epoch_counter = 1
 
     def __getitem_normal(self, index):
         slice_ = slice(index * self._batch_size, (index + 1) * self._batch_size, 1)
