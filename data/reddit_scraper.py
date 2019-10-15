@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from datetime import datetime
 import requests, time
 import numpy as np
@@ -103,8 +105,6 @@ def get_query_terms(n=10):
     sectors = [None] * len(sp500)
     sub_ind = [None] * len(sp500)
 
-    print(len(sectors))
-
     for idx, row in sp500.iterrows():
         try:
             sectors[idx] = wiki[wiki["Symbol"] == sp500.iloc[idx]["Symbol"]]["GICS Sector"].values[0]
@@ -128,7 +128,7 @@ def get_query_terms(n=10):
 
     sp500 = sp500[~sp500["Symbol"].isin(short_symbols)].reset_index(drop=True)
 
-    assert len(sp500[sp500["GICS Sector"] is None]) == 0
+    assert len(sp500[sp500["GICS Sector"] == None]) == 0
 
     return sp500[:n]["Symbol"].values, sp500[:n]["Name"].values
 
@@ -151,7 +151,7 @@ def scrape_page(url: str, params: dict, last_page: list = None):
     data = results.json()["data"]
 
     # remove empty results
-    data = [e for e in data if e["selftext"] != ""]
+    data = [e for e in data if "selftext" in e and e["selftext"] != ""]
 
     return data
 
@@ -216,7 +216,7 @@ if __name__ == '__main__':
 
     print("Symbols: {}".format(",".join(symbols)))
 
-    for q, s in np.concatenate((symbols, names)), np.concatenate((symbols, symbols)):
+    for q, s in zip(np.concatenate((symbols, names)), np.concatenate((symbols, symbols))):
 
         params = {"fields": ",".join(fields),
                   "size": "500",
