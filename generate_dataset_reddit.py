@@ -108,7 +108,7 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
                 df["symbol"] = df["symbol"].apply(lambda x: x[0])
 
                 # clean text and remove symbol
-                df["content"] = [str(Text(t).clean().remove_word(s)) for t, s in df[["content", "symbol"]].values]
+                df["content"] = [str(Text(t).clean().remove_word(s.lower()).remove_word(n.lower())) for t, s, n in df[["content", "symbol", "name"]].values]
 
                 dataset = df[["content", "symbol", "timestamp"]].rename(
                     columns={"content": "Text", "symbol": "Intent", "timestamp": "Timestamp"})

@@ -84,9 +84,9 @@ def save_submissions(submissions):
     ) as connection:
         with Cursor(connection) as cursor:
             cursor.execute(
-                "CREATE TABLE IF NOT EXISTS submissions (id INT AUTO_INCREMENT PRIMARY KEY, reddit_id VARCHAR(32) NOT NULL, subreddit VARCHAR(255), symbol VARCHAR(16), title TEXT, content TEXT, timestamp TIMESTAMP);")
+                "CREATE TABLE IF NOT EXISTS submissions (id INT AUTO_INCREMENT PRIMARY KEY, reddit_id VARCHAR(32) NOT NULL, subreddit VARCHAR(255), symbol VARCHAR(16), name VARCHAR(256), title TEXT, content TEXT, timestamp TIMESTAMP);")
 
-            sql = "INSERT IGNORE INTO submissions (reddit_id, subreddit, symbol, title, content, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+            sql = "INSERT IGNORE INTO submissions (reddit_id, subreddit, symbol, name, title, content, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
             val = [e.get_values_tuple() for e in submissions]
 
@@ -135,14 +135,14 @@ if __name__ == '__main__':
 
     print("Symbols: {}".format(",".join(symbols)))
 
-    for q, s in zip(np.concatenate((symbols, names)), np.concatenate((symbols, symbols))):
+    for query, symbol, name in zip(np.concatenate((symbols, names)), np.concatenate((symbols, symbols)), np.concatenate((names, names))):
 
         params = {"fields": ",".join(fields),
                   "size": "500",
                   "is_video": "false",
                   "selftext:not": "[removed]",
                   "subreddit": ",".join(subreddits),
-                  "q": q
+                  "q": query
                   }
 
         last_page = None
@@ -155,7 +155,7 @@ if __name__ == '__main__':
 
                 n_submissions += len(last_page)
 
-                submissions = [Submission(e["id"], e["subreddit"], s, e["title"], e["selftext"],
+                submissions = [Submission(e["id"], e["subreddit"], symbol, name, e["title"], e["selftext"],
                                           datetime.fromtimestamp(e["created_utc"])) for e in last_page]
 
                 save_submissions(submissions)

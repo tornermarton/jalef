@@ -1,8 +1,9 @@
 class Submission(object):
-    def __init__(self, reddit_id, subreddit, symbol, title, content, timestamp):
+    def __init__(self, reddit_id, subreddit, symbol, name, title, content, timestamp):
         self.reddit_id = reddit_id
         self.subreddit = subreddit
         self.symbol = symbol
+        self.name = name
         self.title = title
         self.content = content
         self.timestamp = timestamp
