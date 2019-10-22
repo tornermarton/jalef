@@ -49,6 +49,10 @@ def get_query_terms(n=10):
 
     assert len(sp500[sp500["GICS Sector"] == None]) == 0
 
+    # make some reasonable changes
+    sp500[sp500["Symbol"] == "AMZN"]["Name"] = "Amazon"
+    sp500[sp500["Symbol"] == "GOOG"]["Name"] = "Google"
+
     return sp500[:n]["Symbol"].values, sp500[:n]["Name"].values
 
 
@@ -134,8 +138,11 @@ if __name__ == '__main__':
     symbols, names = get_query_terms(10)
 
     print("Symbols: {}".format(",".join(symbols)))
+    print("Names: {}".format(",".join(names)))
 
     for query, symbol, name in zip(np.concatenate((symbols, names)), np.concatenate((symbols, symbols)), np.concatenate((names, names))):
+
+        print(query)
 
         params = {"fields": ",".join(fields),
                   "size": "500",

@@ -66,8 +66,8 @@ class Text(object):
             .trim()\
             .lowercase()
 
-    def remove_word(self, word):
-        return Text(self.text.replace(' '+word+' ', ' '), self.__original)
+    def replace_word(self, search, target):
+        return Text(self.text.replace(' '+search+' ', ' '+target+' '), self.__original)
 
     def original(self):
         return self.__original
