@@ -165,7 +165,7 @@ def save_submissions(submissions):
     ) as connection:
         with Cursor(connection) as cursor:
             cursor.execute(
-                "CREATE TABLE IF NOT EXISTS submissions (id INT AUTO_INCREMENT PRIMARY KEY, reddit_id VARCHAR(32) NOT NULL UNIQUE, subreddit VARCHAR(255), symbol VARCHAR(16), title TEXT, content TEXT, timestamp TIMESTAMP);")
+                "CREATE TABLE IF NOT EXISTS submissions (id INT AUTO_INCREMENT PRIMARY KEY, reddit_id VARCHAR(32) NOT NULL, subreddit VARCHAR(255), symbol VARCHAR(16), title TEXT, content TEXT, timestamp TIMESTAMP);")
 
             sql = "INSERT IGNORE INTO submissions (reddit_id, subreddit, symbol, title, content, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
 

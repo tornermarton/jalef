@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
 from jalef.preprocessing import train_validation_test_split
+from jalef.statistics import display_word_counts
 
 PATTERNS_TO_REMOVE = ["\[(.*?)\]", ">>"]
 TEMP_FILE = ".temp_dataset.csv"
@@ -26,20 +27,6 @@ class MinValueAction(argparse.Action):
             parser.error("Minimum value for {0} is 1".format(option_string))
 
         setattr(namespace, self.dest, values)
-
-
-def display_word_counts(df):
-    min_word_count = min(df["Word_count"])
-    min_char_count = min(df["Character_count"])
-
-    max_word_count = max(df["Word_count"])
-    max_char_count = max(df["Character_count"])
-
-    print("Max number of words in a sentence: {}".format(max_word_count))
-    print("Max number of characters in a sentence: {}".format(max_char_count))
-
-    print("Min number of words in a sentence: {}".format(min_word_count))
-    print("Min number of characters in a sentence: {}".format(min_char_count))
 
 
 def escape_text(raw):

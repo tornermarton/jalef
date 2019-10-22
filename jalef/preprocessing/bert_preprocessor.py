@@ -18,7 +18,6 @@ class BertPreprocessor(Preprocessor):
     def __init__(self,
                  pretrained_model_path: str,
                  **kwargs):
-
         super().__init__(**kwargs)
 
         info = hub.Module(spec=pretrained_model_path)(signature="tokenization_info", as_dict=True)
@@ -76,7 +75,7 @@ class BertPreprocessor(Preprocessor):
         input_ids[idx] = self._SEP_token
 
         # The mask has 1 for real tokens and 0 for padding tokens. Only real tokens are attended to.
-        for i in range(idx+1):
+        for i in range(idx + 1):
             input_mask[i] = 1
 
         # safety check
