@@ -2,7 +2,7 @@ import requests
 import time
 from datetime import datetime
 
-from jalef.reddit import Submission
+from .submission import Submission
 
 
 class PushshiftScraper(object):

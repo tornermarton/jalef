@@ -3,91 +3,10 @@
 from datetime import datetime
 import requests, time
 import numpy as np
-import string
-import mysql.connector
 import pandas as pd
 import re
 
-
-class Submission(object):
-    def __init__(self, reddit_id, subreddit, symbol, title, content, timestamp):
-        self.reddit_id = reddit_id
-        self.subreddit = subreddit
-        self.symbol = symbol
-        self.title = title
-        self.content = content
-        self.timestamp = timestamp
-
-    def mysql_str(self):
-        return ", ".join(["`{}`={}".format(key, value) for key, value in self.__dict__.items()])
-
-    def get_values_tuple(self):
-        return tuple(self.__dict__.values())
-
-
-# End class Submission
-
-
-class Cursor(object):
-    def __init__(self, connection):
-        self._connection = connection
-
-        self._cursor = None
-
-    def __enter__(self):
-        if self._cursor is None:
-            self._cursor = self._connection.cursor()
-        else:
-            raise ValueError("Cursor is initialized!")
-
-        return self._cursor
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self._cursor is not None:
-            self._cursor.close()
-            self._cursor = None
-        else:
-            raise ValueError("Cursor is not initialized!")
-
-        return self
-
-
-# End class Cursor
-
-
-class DatabaseConnection(object):
-    def __init__(self, host, user, password, database):
-        self.__host = host
-        self.__user = user
-        self.__password = password
-        self.__database = database
-
-        self._connection = None
-
-    def __enter__(self):
-        self.connect()
-
-        return self._connection
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.disconnect()
-
-        return self
-
-    def connect(self):
-        self._connection = mysql.connector.connect(
-            host=self.__host,
-            user=self.__user,
-            passwd=self.__password,
-            database=self.__database
-        )
-
-    def disconnect(self):
-        self._connection.close()
-        self._connection = None
-
-
-# End class DatabaseConnection
+from jalef.reddit import Submission, Cursor, DatabaseConnection
 
 
 def get_query_terms(n=10):

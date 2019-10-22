@@ -4,6 +4,8 @@ import argparse
 import csv
 import re
 import os
+import nltk
+nltk.download('punkt')
 from nltk import tokenize
 
 import pandas as pd
@@ -13,8 +15,8 @@ from IPython.display import display
 from sklearn.utils import shuffle
 
 from jalef.preprocessing import train_validation_test_split
-from jalef.statistics import display_word_counts
 from jalef.reddit import DatabaseConnection, Cursor, Text
+
 
 class MinValueAction(argparse.Action):
 
@@ -101,8 +103,12 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
 
                 df = df[df["content"] != "[deleted]"]
 
-                # clean text
-                df["content"] = [str(Text(t).clean()) for t in df["content"].values]
+                # use the texts which have only one intent
+                df = df[df["symbol"].apply(lambda x: len(x) == 1)]
+                df["symbol"] = df["symbol"].apply(lambda x: x[0])
+
+                # clean text and remove symbol
+                df["content"] = [str(Text(t).clean().remove_word(s)) for t, s in df[["content", "symbol"]].values]
 
                 dataset = df[["content", "symbol", "timestamp"]].rename(
                     columns={"content": "Text", "symbol": "Intent", "timestamp": "Timestamp"})
