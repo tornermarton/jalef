@@ -1,12 +1,11 @@
-from tensorflow.python.keras.callbacks import Callback
 import os
 
 from jalef.plots import plot_confusion_matrix
-from jalef.callbacks import StoreValidationResults
+from jalef.callbacks import StoreValidationResults, CustomCallback
 
 
-class SaveConfusionMatrix(Callback):
-    def __init__(self, svr_instance: StoreValidationResults, title: str, save_directory: str, save_freq: int=1):
+class SaveConfusionMatrix(CustomCallback):
+    def __init__(self, svr_instance: StoreValidationResults, title: str, save_freq: int=1):
         self._svr = svr_instance
         self._title = title
 
@@ -15,18 +14,16 @@ class SaveConfusionMatrix(Callback):
 
         self._save_freq = save_freq
 
-        if os.path.exists(save_directory):
-            raise ValueError("Invalid save directory path!")
-
-        self._path = os.path.join(save_directory, "confusion_matrices")
-
-        if not os.path.exists(self._path):
-            raise ValueError("Path {} already exists!")
-
         super().__init__()
 
+    def init_training(self, log_dir_path):
+        super().init_training(log_dir_path)
+
+        self._log_dir_path = os.path.join(self._log_dir_path, "confusion_matrices")
+        os.makedirs(self._log_dir_path, mode=775)
+
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % self._save_freq:
+        if epoch % self._save_freq == 0:
             y_true = self._svr.get_true_classes()
             y_pred = self._svr.get_predicted_classes()
 
@@ -35,5 +32,5 @@ class SaveConfusionMatrix(Callback):
                                   title=self._title.format(epoch),
                                   show_fig=False,
                                   save_fig=True,
-                                  filename=os.path.join(self._path, "epoch_{}.png".format(epoch))
+                                  filename=os.path.join(self._log_dir_path, "epoch_{}.png".format(epoch))
                                   )

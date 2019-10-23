@@ -2,16 +2,14 @@
 import argparse
 import json
 import os
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
-
 import tensorflow as tf
 
-from jalef.preprocessing import BertPreprocessor, Word2VecPreprocessor
-from jalef.layers import Bert
-from jalef.models import Word2VecClassifier, BertClassifier
+from jalef.models import BertClassifier
+from jalef.preprocessing import BertPreprocessor
+from jalef.callbacks import *
 
 # set random seeds
 np.random.seed(1234)
@@ -52,25 +50,24 @@ def get_training_data(preprocessor, parameters):
     test = pd.read_csv(os.path.join(parameters["dataset"]["path"], "test.csv"))
     X_test, y_test = preprocessor.fit_transform_classification(test["Text"], test["Label"])
 
-    return X_train, y_train, X_valid, y_valid, X_test, y_test
+    lut = pd.read_csv(os.path.join(parameters["dataset"]["path"], "lut.csv"), names=["Intent"], index_col=0, header=0)
+
+    return X_train, y_train, X_valid, y_valid, X_test, y_test, lut
 
 
 def run_training(parameters):
     name = "dataset=" + parameters["dataset"]["name"] + "_embedding=" + parameters["model"]["embedding"] + \
            "_intents=" + str(parameters["dataset"]["n_intents"])
-    
+
     print("Starting...")
 
-    # preprocessor = Word2VecPreprocessor(max_sequence_length=parameters["dataset"]["max_seq_len"])
     preprocessor = BertPreprocessor(pretrained_model_path=parameters["model"]["pretrained_model_path"],
                                     max_sequence_length=parameters["dataset"]["max_seq_len"])
-    
+
     print("Loading dataset...")
 
-    X_train, y_train, X_valid, y_valid, X_test, y_test = get_training_data(preprocessor=preprocessor,
-                                                                           parameters=parameters)
-
-    # embedding_matrix = preprocessor.get_embedding_matrix(300, parameters["model"]["pretrained_model_path"])
+    X_train, y_train, X_valid, y_valid, X_test, y_test, lut = get_training_data(preprocessor=preprocessor,
+                                                                                parameters=parameters)
 
     print("Compiling model...")
 
@@ -83,42 +80,47 @@ def run_training(parameters):
         fc_layer_sizes=[256, 128],
         lstm_layer_sizes=[128],
         name=name,
-        weights_root=parameters["logging"]["weights_root"],
+        logs_root_path=parameters["logging"]["weights_root"],
     )
 
     model.compile(
         optimizer=parameters["hyperparameters"]["optimizer"],
         loss=parameters["hyperparameters"]["loss"],
         metrics=parameters["hyperparameters"]["metrics"],
-        monitor=parameters["hyperparameters"]["monitor"],
-        patience=parameters["hyperparameters"]["patience"],
-        min_delta=parameters["hyperparameters"]["min_delta"],
-        tensorboard_root=parameters["logging"]["tensorboard_root"],
-        # embedding_matrix=embedding_matrix,
         print_summary=True
     )
 
-    # Save model configuration
-    with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:
-        json.dump(obj=model._model.to_json(), fp=file)
+    svr = StoreValidationResults(x=X_valid,
+                                 y=y_valid,
+                                 lookup_fn=lambda e: lut.at[e, "Intent"]
+                                 )
+
+    model.add_custom_callback(svr)
+
+    scm = SaveConfusionMatrix(svr_instance=svr,
+                              title=name + "_epoch={}"
+                              )
+
+    model.add_custom_callback(scm)
+
+    stp = SaveTestPredictions(
+        X=X_test
+    )
+
+    model.add_custom_callback(stp)
 
     print("Start training...")
 
     initialize_vars(sess=sess)
     model.train(
-        X_train=[X_train[0], X_train[1], X_train[2]],
+        X_train=X_train,
         y_train=y_train,
-        X_valid=[X_valid[0], X_valid[1], X_valid[2]],
+        X_valid=X_valid,
         y_valid=y_valid,
-        X_test=[X_test[0], X_test[1], X_test[2]],
-        y_test=y_test,
         epochs=parameters["hyperparameters"]["epochs"],
-        batch_size=parameters["hyperparameters"]["batch_size"],
-        shuffle=parameters["hyperparameters"]["shuffle"],
-        load_best_model_on_end=True,
-        evaluate_on_end=True,
-        save_predictions_on_end=True,
-        predictions_path=os.path.join("data/coursera_predictions/", name + "_predictions.npy"),
+        monitor=parameters["hyperparameters"]["monitor"],
+        patience=parameters["hyperparameters"]["patience"],
+        min_delta=parameters["hyperparameters"]["min_delta"],
         verbose=1
     )
 

@@ -3,11 +3,14 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, List, Union
 import numpy as np
+import json
 
-from tensorflow.python.keras.callbacks import Callback, ModelCheckpoint, EarlyStopping, TensorBoard
+from tensorflow.python.keras.callbacks import Callback, ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger
 from tensorflow.python.keras.callbacks import History
 
 from tensorflow.python.keras import Model
+
+from jalef.callbacks import CustomCallback
 
 
 class Core(ABC):
@@ -30,13 +33,62 @@ class Core(ABC):
 
     def __init__(self,
                  name: str = "jalef_model",
-                 weights_root: str = ""
+                 logs_root_path: str = None
                  ):
 
         self._name: str = name
+
         self._callbacks: List[Callback] = []
-        self._weights_path: str = os.path.join(weights_root, self._name + "_weights.hdf5")
+        self._custom_callbacks: List[Callback] = []
+
+        self._logs_root_path = logs_root_path
+        self._weights_path = None
+
         self._model: Model = None
+
+    def add_custom_callback(self, callback: CustomCallback) -> None:
+        """Add custom callback to use when training model."""
+
+        self._custom_callbacks.append(callback)
+
+    def __init_training(self, monitor, patience, min_delta) -> str:
+        training_name: str = self._name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")
+
+        log_dir_path: str = os.path.join(self._logs_root_path, training_name)
+        os.makedirs(log_dir_path, mode=775)
+
+        # define log directories and create them
+        weights_path = os.path.join(log_dir_path, "weights.hdf5")
+        self._weights_path = weights_path
+        model_configs_path = os.path.join(log_dir_path, "model_configs.json")
+        training_log_path = os.path.join(log_dir_path, "training.log")
+        tensorboard_path = os.path.join(os.path.join(self._logs_root_path, "tensorboard"), training_name)
+
+        # save model architecture
+        with open(model_configs_path, "w") as file:
+            json.dump(obj=self._model.to_json(), fp=file)
+
+        # create basic callbacks which are used always
+        model_checkpoint: Callback = ModelCheckpoint(filepath=weights_path,
+                                                     monitor=monitor,
+                                                     verbose=1,
+                                                     save_best_only=True)
+
+        early_stopping: Callback = EarlyStopping(patience=patience,
+                                                 min_delta=min_delta,
+                                                 verbose=1, monitor=monitor)
+
+        tensorboard: Callback = TensorBoard(log_dir=tensorboard_path)
+
+        csv_logger: Callback = CSVLogger(filename=training_log_path, append=True)
+
+        self._callbacks = [csv_logger, tensorboard, model_checkpoint, early_stopping]
+
+        # initialize all added custom callbacks
+        for c in self._custom_callbacks:
+            c.init_training(log_dir_path=log_dir_path)
+
+        return log_dir_path
 
     @abstractmethod
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
@@ -56,10 +108,6 @@ class Core(ABC):
                 optimizer: str = "adam",
                 loss: str = "mse",
                 metrics: List[str] = None,
-                monitor: str = "val_acc",
-                patience: int = 10,
-                min_delta: float = 0.005,
-                tensorboard_root: str = None,
                 print_summary: bool = True,
                 **kwargs) -> None:
 
@@ -70,132 +118,77 @@ class Core(ABC):
 
         Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
 
-        :param tensorboard_root: The root directory of tensorboard logs. (e.g. /app/logs/tensorboard)
         :param print_summary: Print model summary after compilation.
         :param kwargs: Further parameters passed to the _constuct_model method which is class specific.
         :return: None
         """
 
-        # Create and add basic callbacks
-        model_checkpoint: Callback = ModelCheckpoint(filepath=self._weights_path,
-                                                     monitor=monitor,
-                                                     verbose=1,
-                                                     save_best_only=True)
-
-        early_stopping: Callback = EarlyStopping(patience=patience,
-                                                 min_delta=min_delta,
-                                                 verbose=1, monitor=monitor)
-
-        self._callbacks = [model_checkpoint, early_stopping]
-
-        if tensorboard_root is not None:
-            tensorboard = TensorBoard(
-                log_dir=os.path.join(tensorboard_root, self._name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")))
-
-            self._callbacks.append(tensorboard)
-
         self._construct_model(print_summary=print_summary, **kwargs)
         self._model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-
-    def add_callback(self, callback: Callback) -> None:
-        """Add custom callback to use when training model."""
-
-        self._callbacks.append(callback)
 
     def train(self,
               X_train: np.ndarray,
               y_train: np.ndarray,
               X_valid: np.ndarray,
               y_valid: np.ndarray,
-              X_test: np.ndarray,
-              y_test: np.ndarray,
+              monitor: str = "val_acc",
+              patience: int = 10,
+              min_delta: float = 0.005,
               epochs: int = 10,
               batch_size: int = 32,
               shuffle: bool = True,
-              load_best_model_on_end: bool = True,
-              evaluate_on_end: bool = True,
-              save_predictions_on_end: bool = True,
-              predictions_path: str = "predictions.npy",
               verbose: int = 0) -> History:
 
         """Start training process, run tests and save results.
 
         Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
 
-        :param load_best_model_on_end: Load the best model back after the training is finished.
-        :param evaluate_on_end: Do the evaluation when the training is finished (with best model).
-        :param save_predictions_on_end: Save the network outputs for the test set (with best model).
-        :param predictions_path: The full path where to save the predictions.
         :param verbose: Set the verbosity.
         :return: Network history.
         """
 
-        """Train the model, must be called after the compile method."""
+        log_dir_path = self.__init_training(monitor=monitor, patience=patience, min_delta=min_delta)
 
-        history: History = self._model.fit(X_train, y_train,
-                                           batch_size=batch_size,
-                                           epochs=epochs,
-                                           verbose=verbose,
-                                           validation_data=(X_valid, y_valid),
-                                           shuffle=shuffle,
-                                           callbacks=self._callbacks
-                                           )
+        print("The logs are saved under the following path: {}".format(log_dir_path))
 
-        if load_best_model_on_end or save_predictions_on_end or evaluate_on_end:
-            self.load_best_model()
-
-        if evaluate_on_end:
-            self.evaluate(X_test=X_test, y_test=y_test)
-
-        if save_predictions_on_end:
-            self.predict(X_test=X_test, save_predictions=True, path=predictions_path)
-
-        return history
+        return self._model.fit(X_train, y_train,
+                               batch_size=batch_size,
+                               epochs=epochs,
+                               verbose=verbose,
+                               validation_data=(X_valid, y_valid),
+                               shuffle=shuffle,
+                               # concatenate callbacks list
+                               callbacks=(self._custom_callbacks + self._callbacks)
+                               )
 
     def train_generator(self,
-              generator,
-              X_valid: np.ndarray,
-              y_valid: np.ndarray,
-              X_test: np.ndarray,
-              y_test: np.ndarray,
-              epochs: int = 10,
-              load_best_model_on_end: bool = True,
-              evaluate_on_end: bool = True,
-              save_predictions_on_end: bool = True,
-              predictions_path: str = "predictions.npy",
-              verbose: int = 0) -> History:
+                        generator,
+                        X_valid: np.ndarray,
+                        y_valid: np.ndarray,
+                        monitor: str = "val_acc",
+                        patience: int = 10,
+                        min_delta: float = 0.005,
+                        epochs: int = 10,
+                        verbose: int = 0) -> History:
 
         """Start training process, run tests and save results.
 
         Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
 
-        :param load_best_model_on_end: Load the best model back after the training is finished.
-        :param evaluate_on_end: Do the evaluation when the training is finished (with best model).
-        :param save_predictions_on_end: Save the network outputs for the test set (with best model).
-        :param predictions_path: The full path where to save the predictions.
         :param verbose: Set the verbosity.
         :return: Network history.
         """
 
-        """Train the model, must be called after the compile method."""
+        log_dir_path = self.__init_training(monitor=monitor, patience=patience, min_delta=min_delta)
 
-        history: History = self._model.fit_generator(generator=generator,
-                                                     epochs=epochs,
-                                                     verbose=verbose,
-                                                     validation_data=(X_valid, y_valid),
-                                                     callbacks=self._callbacks
-                                                     )
+        print("The logs are saved under the following path: {}".format(log_dir_path))
 
-        if load_best_model_on_end or save_predictions_on_end or evaluate_on_end:
-            self.load_best_model()
-
-        if evaluate_on_end:
-            self.evaluate(X_test=X_test, y_test=y_test)
-
-        if save_predictions_on_end:
-            self.predict(X_test=X_test, save_predictions=True, path=predictions_path)
-
-        return history
+        return self._model.fit_generator(generator=generator,
+                                         epochs=epochs,
+                                         verbose=verbose,
+                                         validation_data=(X_valid, y_valid),
+                                         callbacks=self._callbacks
+                                         )
 
     def load_weights_from_file(self, path: str) -> None:
         """Load the network weights from a path.
@@ -210,6 +203,8 @@ class Core(ABC):
 
         :return: None
         """
+
+        assert self._weights_path is not None, "Cannot load back best weights without training."
         self.load_weights_from_file(path=self._weights_path)
 
     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Any:
@@ -247,9 +242,9 @@ class AttentionModelCore(Core, ABC):
                  use_attention: bool = True,
                  use_shared_attention_vector: bool = True,
                  name: str = "jalef_attention_model",
-                 weights_root: str = "",
+                 logs_root_path: str = "",
                  ):
-        super().__init__(name, weights_root)
+        super().__init__(name, logs_root_path)
 
         self._use_attention: bool = use_attention
         self._use_shared_attention_vector: bool = use_shared_attention_vector
@@ -270,9 +265,9 @@ class Seq2SeqCore(AttentionModelCore, ABC):
                  use_attention: bool = True,
                  use_shared_attention_vector: bool = True,
                  name: str = "jalef_seq2seq_model",
-                 weights_root: str = ""
+                 logs_root_path: str = ""
                  ):
-        super().__init__(use_attention, use_shared_attention_vector, name, weights_root)
+        super().__init__(use_attention, use_shared_attention_vector, name, logs_root_path)
 
         self._time_steps: int = time_steps
         self._source_vocab_size: int = source_vocab_size
@@ -328,10 +323,10 @@ class SequenceClassifierCore(Core, ABC):
                  fc_layer_sizes: List[int],
                  lstm_layer_sizes: List[int],
                  name: str = "jalef_classifier_model",
-                 weights_root: str = ""
+                 logs_root_path: str = ""
                  ):
 
-        super().__init__(name, weights_root)
+        super().__init__(name, logs_root_path)
 
         self._n_classes: int = n_classes
         self._time_steps = time_steps

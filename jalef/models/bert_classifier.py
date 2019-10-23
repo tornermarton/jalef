@@ -18,9 +18,9 @@ class BertClassifier(SequenceClassifierCore):
                  fc_layer_sizes: List[int],
                  lstm_layer_sizes: List[int],
                  name: str,
-                 weights_root: str = "."
+                 logs_root_path: str = ""
                  ):
-        super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name,  weights_root)
+        super().__init__(n_classes, time_steps, fc_layer_sizes, lstm_layer_sizes, name,  logs_root_path)
 
         self._pretrained_model_path = pretrained_model_path
         self._output_size = output_size

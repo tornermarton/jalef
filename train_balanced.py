@@ -2,7 +2,6 @@
 import argparse
 import json
 import os
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -10,7 +9,6 @@ import pandas as pd
 import tensorflow as tf
 
 from jalef.preprocessing import BertPreprocessor
-from jalef.layers import Bert
 from jalef.models import BertClassifier
 from jalef.generators import BalancedTrainGenerator
 from jalef.callbacks import *
@@ -63,10 +61,6 @@ def run_training(parameters):
     name = "dataset=" + parameters["dataset"]["name"] + "_embedding=" + parameters["model"]["embedding"] + \
            "_intents=" + str(parameters["dataset"]["n_intents"])
 
-    save_dir = os.path.join(parameters["logging"]["eval_root"], name)
-
-    os.mkdir(save_dir)
-
     print("Starting...")
 
     preprocessor = BertPreprocessor(pretrained_model_path=parameters["model"]["pretrained_model_path"],
@@ -75,7 +69,7 @@ def run_training(parameters):
     print("Loading dataset...")
 
     X_train, y_train, X_valid, y_valid, X_test, y_test, lut = get_training_data(preprocessor=preprocessor,
-                                                                           parameters=parameters)
+                                                                                parameters=parameters)
 
     print("Compiling model...")
 
@@ -88,32 +82,28 @@ def run_training(parameters):
         fc_layer_sizes=[256, 128],
         lstm_layer_sizes=[128],
         name=name,
-        weights_root=parameters["logging"]["weights_root"],
+        logs_root_path=parameters["logging"]["weights_root"],
     )
 
     model.compile(
         optimizer=parameters["hyperparameters"]["optimizer"],
         loss=parameters["hyperparameters"]["loss"],
         metrics=parameters["hyperparameters"]["metrics"],
-        monitor=parameters["hyperparameters"]["monitor"],
-        patience=parameters["hyperparameters"]["patience"],
-        min_delta=parameters["hyperparameters"]["min_delta"],
-        tensorboard_root=parameters["logging"]["tensorboard_root"],
         print_summary=True
     )
 
     svr = StoreValidationResults(x=X_valid,
-                                 y=y_valid
+                                 y=y_valid,
+                                 lookup_fn=lambda e: lut.at[e, "Intent"]
                                  )
 
-    model.add_callback(svr)
+    model.add_custom_callback(svr)
 
     scm = SaveConfusionMatrix(svr_instance=svr,
-                              title=name + "_epoch={}",
-                              save_directory=save_dir
+                              title=name + "_epoch={}"
                               )
 
-    model.add_callback(scm)
+    model.add_custom_callback(scm)
 
     btg = BalancedTrainGenerator(inputs=X_train,
                                  outputs=y_train,
@@ -124,15 +114,16 @@ def run_training(parameters):
                                  )
 
     btg_cb = BTGCallback(svr_instance=svr,
-                         generator_instance=btg,
-                         test_dir_path=save_dir
+                         generator_instance=btg
                          )
 
-    model.add_callback(btg_cb)
+    model.add_custom_callback(btg_cb)
 
-    # Save model configuration
-    with open(os.path.join(parameters["logging"]["model_configs_root"], name + "_configs.json"), "w") as file:
-        json.dump(obj=model._model.to_json(), fp=file)
+    stp = SaveTestPredictions(
+        X=X_test
+    )
+
+    model.add_custom_callback(stp)
 
     print("Start training...")
 
@@ -141,13 +132,10 @@ def run_training(parameters):
         generator=btg,
         X_valid=X_valid,
         y_valid=y_valid,
-        X_test=X_test,
-        y_test=y_test,
         epochs=parameters["hyperparameters"]["epochs"],
-        load_best_model_on_end=True,
-        evaluate_on_end=True,
-        save_predictions_on_end=True,
-        predictions_path=os.path.join("data/coursera_predictions/", name + "_predictions.npy"),
+        monitor=parameters["hyperparameters"]["monitor"],
+        patience=parameters["hyperparameters"]["patience"],
+        min_delta=parameters["hyperparameters"]["min_delta"],
         verbose=1
     )
 

@@ -1,11 +1,11 @@
-from tensorflow.python.keras.callbacks import Callback
 import numpy as np
 from enum import Enum, auto
 
 from jalef.statistics import evaluate_result
+from jalef.callbacks import CustomCallback
 
 
-class StoreValidationResults(Callback):
+class StoreValidationResults(CustomCallback):
     class Task(Enum):
         REGRESSION = auto()
         CLASSIFICATION = auto()
