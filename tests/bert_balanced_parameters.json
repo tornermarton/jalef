@@ -1,10 +1,10 @@
 {
   "dataset": {
-    "path": "/app/data/coursera_dataset_top50/",
-    "name": "coursera",
+    "path": "/app/data/reddit_top10/",
+    "name": "reddit",
     "max_seq_len": 128,
-    "min_seq_len": 64,
-    "n_intents": 50
+    "min_seq_len": 32,
+    "n_intents": 10
   },
   "model": {
     "embedding": "bert_balanced",
@@ -26,6 +26,7 @@
     "min_delta": 0.005
   },
   "logging": {
+    "root": "/app/logs/",
     "tensorboard_root": "/app/logs/tensorboard/",
     "weights_root": "/app/logs/weights/",
     "model_configs_root": "/app/logs/configs/",
