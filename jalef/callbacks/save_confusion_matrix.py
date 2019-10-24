@@ -1,7 +1,8 @@
 import os
 
 from jalef.plots import plot_confusion_matrix
-from jalef.callbacks import StoreValidationResults, CustomCallback
+from .custom_callback import CustomCallback
+from .store_validation_results import StoreValidationResults
 
 
 class SaveConfusionMatrix(CustomCallback):

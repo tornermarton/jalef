@@ -1,9 +1,9 @@
 import numpy as np
 import os
 
-from jalef.callbacks import StoreValidationResults
 from jalef.generators import BalancedTrainGenerator
-from jalef.callbacks import CustomCallback
+from .custom_callback import CustomCallback
+from .store_validation_results import StoreValidationResults
 
 
 class BTGCallback(CustomCallback):

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from jalef.callbacks import CustomCallback
+from .custom_callback import CustomCallback
 
 
 class SaveTestPredictions(CustomCallback):

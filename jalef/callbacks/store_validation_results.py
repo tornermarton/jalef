@@ -2,7 +2,7 @@ import numpy as np
 from enum import Enum, auto
 
 from jalef.statistics import evaluate_result
-from jalef.callbacks import CustomCallback
+from .custom_callback import CustomCallback
 
 
 class StoreValidationResults(CustomCallback):
