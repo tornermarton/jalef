@@ -187,7 +187,7 @@ class Core(ABC):
                                          epochs=epochs,
                                          verbose=verbose,
                                          validation_data=(X_valid, y_valid),
-                                         callbacks=self._callbacks
+                                         callbacks=(self._custom_callbacks + self._callbacks)
                                          )
 
     def load_weights_from_file(self, path: str) -> None:

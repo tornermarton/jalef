@@ -26,7 +26,7 @@ class StoreValidationResults(CustomCallback):
         super().__init__()
 
     def on_epoch_end(self, epoch, logs=None):
-        self._y_pred = self.model.predict(self._X_validation, verbose=0, batch_size=self._batch_size)
+        self._y_pred = self.model.predict(self._x, verbose=0, batch_size=self._batch_size)
 
         if self.__show_metrics:
             self._metrics = evaluate_result(y_pred=self.get_predicted_classes(), y_true=self.get_true_classes())

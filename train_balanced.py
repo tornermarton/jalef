@@ -3,6 +3,9 @@ import argparse
 import json
 import os
 
+# only print TF ERRORS
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import numpy as np
 import pandas as pd
 
