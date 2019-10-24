@@ -55,7 +55,7 @@ class Core(ABC):
         training_name: str = self._name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
         log_dir_path: str = os.path.join(self._logs_root_path, training_name)
-        os.makedirs(log_dir_path, mode=775)
+        os.makedirs(log_dir_path)
 
         # define log directories and create them
         weights_path = os.path.join(log_dir_path, "weights.hdf5")

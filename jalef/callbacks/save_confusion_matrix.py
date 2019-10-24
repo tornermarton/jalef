@@ -10,7 +10,7 @@ class SaveConfusionMatrix(CustomCallback):
         self._svr = svr_instance
         self._title = title
 
-        if not (save_freq > 1 and type(save_freq) is int):
+        if not (save_freq >= 1 and type(save_freq) is int):
             raise ValueError("Save frequency must be a positive integer!")
 
         self._save_freq = save_freq
@@ -21,7 +21,7 @@ class SaveConfusionMatrix(CustomCallback):
         super().init_training(log_dir_path)
 
         self._log_dir_path = os.path.join(self._log_dir_path, "confusion_matrices")
-        os.makedirs(self._log_dir_path, mode=775)
+        os.makedirs(self._log_dir_path)
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self._save_freq == 0:

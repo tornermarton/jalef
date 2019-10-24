@@ -82,7 +82,7 @@ def run_training(parameters):
         fc_layer_sizes=[256, 128],
         lstm_layer_sizes=[128],
         name=name,
-        logs_root_path=parameters["logging"]["weights_root"],
+        logs_root_path=parameters["logging"]["root"],
     )
 
     model.compile(
