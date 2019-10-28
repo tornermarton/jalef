@@ -51,8 +51,8 @@ def get_query_terms(n=10):
     assert len(sp500[sp500["GICS Sector"] == None]) == 0
 
     # make some reasonable changes
-    sp500[sp500["Symbol"] == "AMZN"]["Name"] = "Amazon"
-    sp500[sp500["Symbol"] == "GOOG"]["Name"] = "Google"
+    sp500.at[sp500["Symbol"] == "AMZN"]["Name"] = "Amazon"
+    sp500.at[sp500["Symbol"] == "GOOG"]["Name"] = "Google"
 
     return sp500[:n]["Symbol"].values, sp500[:n]["Name"].values
 
