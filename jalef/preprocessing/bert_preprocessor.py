@@ -106,15 +106,21 @@ class BertPreprocessor(Preprocessor):
         :return: The sequences of tokens, masks and segment ids.
         """
 
-        input_ids, input_masks, segment_ids = [], [], []
+        input_ids = np.empty([len(texts)], dtype=np.int64)
+        input_masks = np.empty([len(texts)], dtype=np.int64)
+        segment_ids = np.empty([len(texts)], dtype=np.int64)
+
+        # input_ids, input_masks, segment_ids = [], [], []
 
         for i, text in enumerate(texts):
-            input_id, input_mask, segment_id = self.tokenize(text=text)
-            input_ids.append(input_id)
-            input_masks.append(input_mask)
-            segment_ids.append(segment_id)
+            input_ids[i], input_masks[i], segment_ids[i] = self.tokenize(text=text)
+            # input_id, input_mask, segment_id = self.tokenize(text=text)
+            # input_ids.append(input_id)
+            # input_masks.append(input_mask)
+            # segment_ids.append(segment_id)
 
-        return [np.array(input_ids), np.array(input_masks), np.array(segment_ids)]
+        # return [np.array(input_ids), np.array(input_masks), np.array(segment_ids)]
+        return [input_ids, input_masks, segment_ids]
 
     def inverse_transform(self, sequences: np.ndarray):
         """Transform sequences of tokens back to sequences of words (sentences).
