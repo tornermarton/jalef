@@ -37,7 +37,7 @@ class StoreValidationResults(CustomCallback):
                 line += "{}={}, ".format(key, self._metrics[key])
             line += "{}={}".format(keys[-1], self._metrics[keys[-1]])
 
-            print(line)
+            print('\n' + line)
 
     def get_predicted_classes(self, pretty=False):
         assert self._task == StoreValidationResults.Task.CLASSIFICATION, "Only possible if task is classification!"

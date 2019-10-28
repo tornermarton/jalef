@@ -9,6 +9,7 @@ from tensorflow.python.keras.callbacks import Callback, ModelCheckpoint, EarlySt
 from tensorflow.python.keras.callbacks import History
 
 from tensorflow.python.keras import Model
+import tensorflow as tf
 
 from jalef.callbacks import CustomCallback
 
@@ -36,37 +37,57 @@ class Core(ABC):
                  logs_root_path: str = None
                  ):
 
+        """
+        Initialize the class.
+
+        :param name: The name of the model.
+        :param logs_root_path: The path to the logs directory. Must have a 'tensorboard' child directory.
+        """
+
         self._name: str = name
 
         self._callbacks: List[Callback] = []
         self._custom_callbacks: List[Callback] = []
 
         self._logs_root_path = logs_root_path
-        self._weights_path = None
+        self._weights_path: str = None
 
         self._model: Model = None
 
-    def add_custom_callback(self, callback: CustomCallback) -> None:
-        """Add custom callback to use when training model."""
+    def __save_model_architecture(self, path: str) -> None:
+        with open(path, "w") as file:
+            json.dump(obj=self._model.to_json(), fp=file)
 
-        self._custom_callbacks.append(callback)
+        return None
 
-    def __init_training(self, monitor, patience, min_delta) -> str:
+    def __init_training(self, monitor: str, patience: int, min_delta: float) -> None:
+        """
+        Initialize the training process:
+        - create a name
+        - create directory structure for logging
+        - construct base callbacks
+        - initialize the custom callbacks added beforehand
+
+        :param monitor: See method train.
+        :param patience: See method train.
+        :param min_delta: See method train.
+        :return:
+        """
+
         training_name: str = self._name + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
         log_dir_path: str = os.path.join(self._logs_root_path, training_name)
         os.makedirs(log_dir_path)
 
         # define log directories and create them
-        weights_path = os.path.join(log_dir_path, "weights.hdf5")
-        self._weights_path = weights_path
-        model_configs_path = os.path.join(log_dir_path, "model_configs.json")
-        training_log_path = os.path.join(log_dir_path, "training.log")
-        tensorboard_path = os.path.join(os.path.join(self._logs_root_path, "tensorboard"), training_name)
+        weights_path: str = os.path.join(log_dir_path, "weights.hdf5")
+        self._weights_path: str = weights_path
+        model_configs_path: str = os.path.join(log_dir_path, "model_configs.json")
+        training_log_path: str = os.path.join(log_dir_path, "training.log")
+        tensorboard_path: str = os.path.join(os.path.join(self._logs_root_path, "tensorboard"), training_name)
 
         # save model architecture
-        with open(model_configs_path, "w") as file:
-            json.dump(obj=self._model.to_json(), fp=file)
+        self.__save_model_architecture(model_configs_path)
 
         # create basic callbacks which are used always
         model_checkpoint: Callback = ModelCheckpoint(filepath=weights_path,
@@ -88,7 +109,9 @@ class Core(ABC):
         for c in self._custom_callbacks:
             c.init_training(log_dir_path=log_dir_path)
 
-        return log_dir_path
+        print("The logs are saved under the following path: {}".format(log_dir_path))
+
+        return None
 
     @abstractmethod
     def _construct_model(self, print_summary: bool, **kwargs) -> None:
@@ -104,6 +127,16 @@ class Core(ABC):
 
         pass
 
+    def add_custom_callback(self, callback: CustomCallback) -> None:
+        """
+        Add custom callback to use when training model.
+
+        :param callback: The tf.keras.callback.Callback derived callback to add
+        :return: None
+        """
+
+        self._custom_callbacks.append(callback)
+
     def compile(self,
                 optimizer: str = "adam",
                 loss: str = "mse",
@@ -118,6 +151,9 @@ class Core(ABC):
 
         Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
 
+        :param optimizer: The network training optimizer.
+        :param loss: Loss function(s).
+        :param metrics: Metrics to be shown and saved after every epoch. (these are passed to the callbacks also)
         :param print_summary: Print model summary after compilation.
         :param kwargs: Further parameters passed to the _constuct_model method which is class specific.
         :return: None
@@ -143,13 +179,22 @@ class Core(ABC):
 
         Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
 
+
+        :param X_train: Training inputs
+        :param y_train: Training outputs
+        :param X_valid: Validation inputs
+        :param y_valid: validation outputs
+        :param monitor: Network metric which is used at EarlyStopping and ModelCheckpoint
+        :param patience: Number of epochs to wait before EarlyStopping when monitored metric does not change
+        :param min_delta: Minimum delta of monitored metric to consider as change (in positive direction)
+        :param epochs: Number of epochs (training)
+        :param batch_size: Batch size
+        :param shuffle: Shuffle training and validation sets after every epoch
         :param verbose: Set the verbosity.
         :return: Network history.
         """
 
-        log_dir_path = self.__init_training(monitor=monitor, patience=patience, min_delta=min_delta)
-
-        print("The logs are saved under the following path: {}".format(log_dir_path))
+        self.__init_training(monitor=monitor, patience=patience, min_delta=min_delta)
 
         return self._model.fit(X_train, y_train,
                                batch_size=batch_size,
@@ -162,7 +207,7 @@ class Core(ABC):
                                )
 
     def train_generator(self,
-                        generator,
+                        generator: tf.keras.utils.Sequence,
                         X_valid: np.ndarray,
                         y_valid: np.ndarray,
                         monitor: str = "val_acc",
@@ -175,13 +220,19 @@ class Core(ABC):
 
         Since this is a tf.keras model wrapper class, the parameters can be given the same way as there.
 
+
+        :param generator: Network input generator (same as in tf.keras)
+        :param X_valid: Validation inputs
+        :param y_valid: validation outputs
+        :param monitor: Network metric which is used at EarlyStopping and ModelCheckpoint
+        :param patience: Number of epochs to wait before EarlyStopping when monitored metric does not change
+        :param min_delta: Minimum delta of monitored metric to consider as change (in positive direction)
+        :param epochs: Number of epochs (training)
         :param verbose: Set the verbosity.
         :return: Network history.
         """
 
-        log_dir_path = self.__init_training(monitor=monitor, patience=patience, min_delta=min_delta)
-
-        print("The logs are saved under the following path: {}".format(log_dir_path))
+        self.__init_training(monitor=monitor, patience=patience, min_delta=min_delta)
 
         return self._model.fit_generator(generator=generator,
                                          epochs=epochs,
