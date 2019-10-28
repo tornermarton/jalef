@@ -83,22 +83,22 @@ def get_top_n_categories(n: int) -> np.ndarray:
             password="FlDa3846",
             database="reddit"
     ) as connection:
-
         with Cursor(connection) as cursor:
-            cursor.execute("SELECT count(*), symbol, min(name) FROM submissions GROUP BY symbol ORDER BY count(symbol) DESC")
+            cursor.execute(
+                "SELECT count(*), symbol, min(name) FROM submissions GROUP BY symbol ORDER BY count(symbol) DESC")
 
             results = cursor.fetchall()
 
-            symbols = np.empty([len(results)], dtype=str)
+            symbols = np.empty([len(results)], dtype=np.str)
 
             for i, r in enumerate(results):
-                symbols[i] = r["symbol"]
+                symbols[i] = r[1]
 
             return symbols[:n]
 
 
 def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbosity):
-    symbols = get_top_n_categories(n=n)
+    symbols = get_top_n_categories(n=n).tolist()
 
     with DatabaseConnection(
             host="172.17.0.3",
@@ -108,9 +108,10 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
     ) as connection:
 
         with Cursor(connection) as cursor:
-            cursor.execute("SELECT * FROM submissions WHERE symbol IN ({})".format(", ".join(["%s"]*len(symbols))), symbols)
-
             try:
+                cursor.execute(
+                    "SELECT * FROM submissions WHERE symbol IN ({})".format(", ".join(["%s"] * len(symbols))), symbols)
+
                 df = pd.DataFrame(np.array(cursor.fetchall()), columns=cursor.column_names)
 
                 aggregation_functions = {"id": 'min', 'subreddit': 'min', 'symbol': lambda tdf: tdf.unique().tolist(),
@@ -131,7 +132,6 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
 
                 dataset = df[["content", "symbol", "timestamp"]].rename(
                     columns={"content": "Text", "symbol": "Intent", "timestamp": "Timestamp"})
-
 
                 if verbosity >= 1:
                     print("The dataset has {} rows.".format(len(dataset)))
@@ -170,7 +170,8 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
 
                 dataset["Label"] = [reverse_lut[intent] for intent in dataset["Intent"]]
 
-                pd.DataFrame.from_dict(lut, orient='index').to_csv(path_or_buf=os.path.join(output_directory, "lut.csv"))
+                pd.DataFrame.from_dict(lut, orient='index').to_csv(
+                    path_or_buf=os.path.join(output_directory, "lut.csv"))
 
                 # select only the relevant columns to save
                 dataset = dataset.loc[:, ["Text", "Label", "Timestamp"]]
@@ -186,7 +187,8 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
                                                                           )
 
                     train.to_csv(path_or_buf=os.path.join(output_directory, "train.csv"), header=True, index=False)
-                    validation.to_csv(path_or_buf=os.path.join(output_directory, "validation.csv"), header=True, index=False)
+                    validation.to_csv(path_or_buf=os.path.join(output_directory, "validation.csv"), header=True,
+                                      index=False)
                     test.to_csv(path_or_buf=os.path.join(output_directory, "test.csv"), header=True, index=False)
 
                 else:
@@ -203,7 +205,6 @@ def generate_dataset(output_directory: str,
                      n: int,
                      do_splitting: bool,
                      verbosity: int):
-
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
