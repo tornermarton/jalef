@@ -114,7 +114,7 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
                 df = pd.DataFrame(np.array(cursor.fetchall()), columns=cursor.column_names)
 
                 aggregation_functions = {"id": 'min', 'subreddit': 'min', 'symbol': lambda tdf: tdf.unique().tolist(),
-                                         "title": "min", "timestamp": "min", "content": "min"}
+                                         "title": "min", "timestamp": "min", "name": "min", "content": "min"}
 
                 df = df.groupby(['reddit_id']).aggregate(aggregation_functions)
                 df.reset_index(level=["reddit_id"], inplace=True)
