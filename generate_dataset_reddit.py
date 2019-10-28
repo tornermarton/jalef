@@ -131,70 +131,70 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
 
                 dataset = df[["content", "symbol", "timestamp"]].rename(
                     columns={"content": "Text", "symbol": "Intent", "timestamp": "Timestamp"})
+
+
+                if verbosity >= 1:
+                    print("The dataset has {} rows.".format(len(dataset)))
+
+                if verbosity >= 2:
+                    print()
+                    display(dataset.head(10))
+                    #
+                    # print()
+                    # print("The following lines have some unexpected errors:")
+                    #
+                    # # this should produce empty output which means no NaN values
+                    # for e, i in zip(dataset["Text"], dataset["Filename"]):
+                    #     if type(e) is not str:
+                    #         print(dataset.loc[dataset['Filename'] == i], e, i)
+
+                dataset["Word_count"] = [len(tokenize.word_tokenize(e)) for e in dataset["Text"]]
+
+                original_len = len(dataset)
+
+                if verbosity >= 1:
+                    print(
+                        "The result containing only the TOP{} intents has {} rows. It is {:.2f}% of the original dataset.".format(
+                            n, len(dataset), len(dataset) / original_len * 100))
+
+                # Remove too short sequences
+                dataset = dataset.loc[dataset["Word_count"] >= min_sequence_length]
+
+                if verbosity >= 1:
+                    print("Too short sentences removed. The new size of the dataframe is {}.".format(len(dataset)))
+
+                # generate and save LUT
+                lut = {idx: element for idx, element in enumerate(list(set(dataset["Intent"])))}
+
+                reverse_lut = {value: key for key, value in lut.items()}
+
+                dataset["Label"] = [reverse_lut[intent] for intent in dataset["Intent"]]
+
+                pd.DataFrame.from_dict(lut, orient='index').to_csv(path_or_buf=os.path.join(output_directory, "lut.csv"))
+
+                # select only the relevant columns to save
+                dataset = dataset.loc[:, ["Text", "Label", "Timestamp"]]
+
+                if do_splitting:
+                    # shuffle database (no need to reset index because it is dropped at saving)
+                    dataset = shuffle(dataset)
+
+                    # train-validation-test split
+                    train, validation, test = train_validation_test_split(dataset=dataset,
+                                                                          validation_size=0.2,
+                                                                          test_size=0.1
+                                                                          )
+
+                    train.to_csv(path_or_buf=os.path.join(output_directory, "train.csv"), header=True, index=False)
+                    validation.to_csv(path_or_buf=os.path.join(output_directory, "validation.csv"), header=True, index=False)
+                    test.to_csv(path_or_buf=os.path.join(output_directory, "test.csv"), header=True, index=False)
+
+                else:
+                    dataset.to_csv(path_or_buf=os.path.join(output_directory, "dataset.csv"), header=True, index=False)
+
             except Exception as e:
                 print(e)
                 return None
-
-    if verbosity >= 1:
-        print("The dataset has {} rows.".format(len(dataset)))
-
-    if verbosity >= 2:
-        print()
-        display(dataset.head(10))
-        #
-        # print()
-        # print("The following lines have some unexpected errors:")
-        #
-        # # this should produce empty output which means no NaN values
-        # for e, i in zip(dataset["Text"], dataset["Filename"]):
-        #     if type(e) is not str:
-        #         print(dataset.loc[dataset['Filename'] == i], e, i)
-
-    dataset["Word_count"] = [len(tokenize.word_tokenize(e)) for e in dataset["Text"]]
-
-    original_len = len(dataset)
-
-    if verbosity >= 1:
-        print(
-            "The result containing only the TOP{} intents has {} rows. It is {:.2f}% of the original dataset.".format(
-                n, len(dataset), len(dataset) / original_len * 100))
-
-    # Remove too short sequences
-    dataset = dataset.loc[dataset["Word_count"] >= min_sequence_length]
-
-    if verbosity >= 1:
-        print("Too short sentences removed. The new size of the dataframe is {}.".format(len(dataset)))
-
-    # generate and save LUT
-    lut = {idx: element for idx, element in enumerate(list(set(dataset["Intent"])))}
-
-    reverse_lut = {value: key for key, value in lut.items()}
-
-    dataset["Label"] = [reverse_lut[intent] for intent in dataset["Intent"]]
-
-    pd.DataFrame.from_dict(lut, orient='index').to_csv(path_or_buf=os.path.join(output_directory, "lut.csv"))
-
-    # select only the relevant columns to save
-    dataset = dataset.loc[:, ["Text", "Label", "Timestamp"]]
-
-    if do_splitting:
-        # shuffle database (no need to reset index because it is dropped at saving)
-        dataset = shuffle(dataset)
-
-        # train-validation-test split
-        train, validation, test = train_validation_test_split(dataset=dataset,
-                                                              validation_size=0.2,
-                                                              test_size=0.1
-                                                              )
-
-        train.to_csv(path_or_buf=os.path.join(output_directory, "train.csv"), header=True, index=False)
-        validation.to_csv(path_or_buf=os.path.join(output_directory, "validation.csv"), header=True, index=False)
-        test.to_csv(path_or_buf=os.path.join(output_directory, "test.csv"), header=True, index=False)
-
-    else:
-        dataset.to_csv(path_or_buf=os.path.join(output_directory, "dataset.csv"), header=True, index=False)
-
-    return
 
 
 def generate_dataset(output_directory: str,
