@@ -2,7 +2,28 @@ import requests
 import time
 from datetime import datetime
 
-from .submission import Submission
+
+class Submission(object):
+    def __init__(self, reddit_id, subreddit, symbol, name, title, content, timestamp):
+        self.reddit_id = reddit_id
+        self.subreddit = subreddit
+        self.symbol = symbol
+        self.name = name
+        self.title = title
+        self.content = content
+        self.timestamp = timestamp
+
+    def mysql_str(self):
+        return ", ".join(["`{}`={}".format(str(key), str(value)) for key, value in self.__dict__.items()])
+
+    def get_values_tuple(self):
+        return tuple([str(x) for x in self.__dict__.values()])
+
+    def __str__(self):
+        return str(self.get_values_tuple())
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class PushshiftScraper(object):
@@ -60,6 +81,12 @@ class PushshiftScraper(object):
             time.sleep(2)
 
         results = [Submission(e["id"], e["subreddit"], query, e["title"], e["selftext"],
-                              datetime.fromtimestamp(e["created_utc"])) for e in submissions[:max_submissions]]
+                                     datetime.fromtimestamp(e["created_utc"])) for e in submissions[:max_submissions]]
 
         return results
+
+
+class Reddit(object):
+    @staticmethod
+    def PushshiftScraper():
+        return PushshiftScraper()

@@ -15,7 +15,8 @@ from IPython.display import display
 from sklearn.utils import shuffle
 
 from jalef.preprocessing import train_validation_test_split
-from jalef.reddit import DatabaseConnection, Cursor, Text
+from jalef.database import DatabaseConnection, Cursor
+from jalef.preprocessing import Text
 
 
 class MinValueAction(argparse.Action):

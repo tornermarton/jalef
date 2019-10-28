@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import re
 
-from jalef.reddit import Submission, Cursor, DatabaseConnection
+from jalef.database import DatabaseConnection, Cursor
+from jalef.data.scrapers.reddit import Submission
 
 
 def get_query_terms(n=10):
