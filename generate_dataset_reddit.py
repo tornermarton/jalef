@@ -89,7 +89,7 @@ def get_top_n_categories(n: int) -> np.ndarray:
 
             results = cursor.fetchall()
 
-            symbols = np.empty([len(results)], dtype=np.str)
+            symbols = np.empty([len(results)], dtype=object)
 
             for i, r in enumerate(results):
                 symbols[i] = r[1]
