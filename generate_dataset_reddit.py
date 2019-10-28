@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-import csv
-import re
 import os
 import nltk
-nltk.download('punkt')
 from nltk import tokenize
 
 import pandas as pd
@@ -18,6 +15,8 @@ from jalef.preprocessing import train_validation_test_split
 from jalef.database import DatabaseConnection, Cursor
 from jalef.preprocessing import Text
 
+nltk.download('punkt')
+
 
 class MinValueAction(argparse.Action):
 
@@ -29,14 +28,7 @@ class MinValueAction(argparse.Action):
 
 
 def text_to_sequences(text, max_sequence_length, verbosity):
-    while True:
-        try:
-            sentences = tokenize.sent_tokenize(text)
-            break
-        except LookupError:
-            import nltk
-            nltk.download('punkt')
-
+    sentences = tokenize.sent_tokenize(text)
     words = tokenize.word_tokenize(text)
     lens = [len(tokenize.word_tokenize(s)) for s in sentences]
 
@@ -82,7 +74,9 @@ def process_text(text, max_sequence_length, verbosity):
     return sequences
 
 
-def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbosity):
+def get_top_n_categories(n: int) -> np.ndarray:
+    # Note that not LIMIT x is used to allow the usage of None to get all of them
+
     with DatabaseConnection(
             host="172.17.0.3",
             user="tm",
@@ -91,7 +85,30 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
     ) as connection:
 
         with Cursor(connection) as cursor:
-            cursor.execute("SELECT * FROM submissions")
+            cursor.execute("SELECT count(*), symbol, min(name) FROM submissions GROUP BY symbol ORDER BY count(symbol) DESC")
+
+            results = cursor.fetchall()
+
+            symbols = np.empty([len(results)], dtype=str)
+
+            for i, r in enumerate(results):
+                symbols[i] = r["symbol"]
+
+            return symbols[:n]
+
+
+def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbosity):
+    symbols = get_top_n_categories(n=n)
+
+    with DatabaseConnection(
+            host="172.17.0.3",
+            user="tm",
+            password="FlDa3846",
+            database="reddit"
+    ) as connection:
+
+        with Cursor(connection) as cursor:
+            cursor.execute("SELECT * FROM submissions WHERE symbol IN ({})".format(", ".join(["%s"]*len(symbols))), symbols)
 
             try:
                 df = pd.DataFrame(np.array(cursor.fetchall()), columns=cursor.column_names)
@@ -136,10 +153,6 @@ def create_dataset(output_directory, min_sequence_length, n, do_splitting, verbo
     dataset["Word_count"] = [len(tokenize.word_tokenize(e)) for e in dataset["Text"]]
 
     original_len = len(dataset)
-
-    # select the top n intents
-    dataset = dataset.loc[dataset["Intent"].isin(
-        dataset.groupby("Intent").count().sort_values(by=["Text"], ascending=False).index[:n].tolist())]
 
     if verbosity >= 1:
         print(
@@ -192,7 +205,7 @@ def generate_dataset(output_directory: str,
                      verbosity: int):
 
     if not os.path.exists(output_directory):
-        raise FileExistsError("Cannot find output_directory!")
+        os.makedirs(output_directory)
 
     if min_sequence_length > max_sequence_length:
         raise ValueError("min_seq_len cannot be bigger than max_seq_len!")

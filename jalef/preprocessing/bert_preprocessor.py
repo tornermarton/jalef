@@ -106,9 +106,9 @@ class BertPreprocessor(Preprocessor):
         :return: The sequences of tokens, masks and segment ids.
         """
 
-        input_ids = np.empty([len(texts)], dtype=np.int64)
-        input_masks = np.empty([len(texts)], dtype=np.int64)
-        segment_ids = np.empty([len(texts)], dtype=np.int64)
+        input_ids = np.empty([len(texts), self._max_seq_len], dtype=np.int64)
+        input_masks = np.empty([len(texts), self._max_seq_len], dtype=np.int64)
+        segment_ids = np.empty([len(texts), self._max_seq_len], dtype=np.int64)
 
         # input_ids, input_masks, segment_ids = [], [], []
 
