@@ -1,0 +1,12 @@
+alias ll='ls -lGahF'
+alias la='ls -A'
+alias l='ls -CF'
+
+alias df='df -h'
+alias du='du -sh *'
+
+alias gerp=grep
+alias "cd."="cd .."
+alias cls=clear
+
+conda activate tensorflow_2

@@ -1,0 +1,36 @@
+name: tensorflow_1-14
+channels:
+  - plotly==4.1.0
+  - defaults
+  - rapidsai
+  - nvidia
+  - conda-forge
+  - anaconda
+dependencies:
+  - python==3.6
+  - numpy
+  - pandas
+  - tqdm
+  - pip
+  - beautifulsoup4
+  - plotly
+  - chart-studio
+  - python-cufflinks
+  - scikit-learn
+  - tensorboard
+  - jupyterlab
+  - requests
+  - rapids
+  - nltk
+  - seaborn
+  - markdown
+  - gensim
+  - mysql-connector-python
+  - pip:
+    - matplotlib
+    - tensorflow-gpu==1.14.0
+    - bert-tensorflow
+    - tensorflow-hub
+    - tensorflow-addons
+    - ipython==7.7.0
+    - prompt-toolkit==2.0.9

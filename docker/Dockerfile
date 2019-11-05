@@ -1,26 +1,20 @@
-# FROM tensorflow/tensorflow:1.14.0-py3-jupyter
-FROM tensorflow/tensorflow:1.14.0-gpu-py3-jupyter
-# tensorflow/tensorflow:latest-py3-gpu-jupyter
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+MAINTAINER tornermarton
 
 SHELL ["/bin/bash", "-c"]
 
 WORKDIR /
 
-COPY requirements.txt /
 COPY requirements.system /
 
+# Install system packages
 RUN apt-get update && pip install --upgrade pip
 RUN xargs apt-get install -y < requirements.system
-RUN pip install --trusted-host pypi.python.org -r ../requirements.txt
 
-# correct cufflinks imports (plotly.plotly deprecated)
-RUN sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/tools.py \
-    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/plotlytools.py \
-    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/__init__.py
-
+# Create main app directory
 RUN mkdir /app
 
-# configure ssh server
+# Configure ssh server
 RUN mkdir /var/run/sshd
 RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
 
@@ -30,13 +24,33 @@ RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
+# Change the initial root password,
+# THIS MUST BE CHANGED IMMIDIATELY AFTER FIRST LOGIN!
 RUN echo 'root:nehezjelszo' | chpasswd
 
 # configure supervisor
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/copy_files/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/copy_files/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Install Miniconda
+RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+RUN bash Miniconda3-latest-Linux-x86_64.sh -b
+ENV PATH="/root/miniconda3/bin:${PATH}"
+
+# build checkpoint
+COPY copy_files/environments /root/copy_files/environments
+RUN for env in /root/copy_files/environments/*.yml; do conda env create -f $env; done
+RUN conda init bash
+# RUN conda env export -n tensorflow_2 > /root/copy_files/environments/backup_tensorflow_2.yml
+
+# RUN pip install --trusted-host pypi.python.org -r ../requirements.txt
+
+# correct cufflinks imports (plotly.plotly deprecated)
+RUN sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/tools.py \
+    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/plotlytools.py \
+    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/__init__.py
 
 EXPOSE 8888
 EXPOSE 6006

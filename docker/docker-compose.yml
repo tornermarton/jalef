@@ -1,0 +1,21 @@
+version: "2.3"
+
+services:
+  master:
+    build: .
+    runtime: nvidia
+    image: tornermarton/jalef:latest
+    container_name: jalef
+    ports:
+      - "7722:22"
+      - "7788:8888"
+      - "7706:6006"
+    tty: true
+    user: $UID:$GID
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - USER_NAME: $HOME
+    restart: unless-stopped
+    volumes:
+      - ..:/app
+      - $HOME/.ssh:/home/$USER

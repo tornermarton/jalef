@@ -1,1 +1,9 @@
-docker run --runtime=nvidia -e LOCAL_USER_ID=`id -u $USER` -e LOCAL_GROUP_ID=`id -g $USER` --name 'tm-jalef' -p 7788:8888 -p 7706:6006 -p 7722:22 -v $(pwd):/app tornermarton/jalef:latest
+#!/bin/bash
+
+export UID=$(id -u)
+export GID=$(id -g)
+
+docker-compose -f docker-compose.yml up --build -d
+
+echo "Notebook server:"
+docker exec -it jalef bash -c "cat /var/log/supervisor/jupyter-notebook-stderr*" | grep token
