@@ -14,7 +14,6 @@ useradd --shell /bin/bash -u $USER_ID -g $GROUP_ID -o -c "" -m $USER_NAME
 adduser $USER_NAME sudo
 echo $USER_NAME':nehezjelszo' | chpasswd
 export HOME=/home/$USER_NAME
-mkdir /home/$USER_NAME/.ssh
 
 less /root/copy_files/bashrc_append.txt >> /root/.bashrc
 less /root/copy_files/bashrc_append.txt >> /home/$USER_NAME/.bashrc

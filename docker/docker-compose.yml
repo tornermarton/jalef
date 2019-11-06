@@ -11,7 +11,6 @@ services:
       - "7788:8888"
       - "7706:6006"
     tty: true
-    user: $UID:$GID
     environment:
       - CUDA_VISIBLE_DEVICES=0
       - USER_NAME=$USER
