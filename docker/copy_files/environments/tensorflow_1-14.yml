@@ -1,6 +1,6 @@
 name: tensorflow_1-14
 channels:
-  - plotly==4.1.0
+  - plotly
   - defaults
   - rapidsai
   - nvidia
@@ -13,7 +13,7 @@ dependencies:
   - tqdm
   - pip
   - beautifulsoup4
-  - plotly
+  - plotly==4.1.0
   - chart-studio
   - python-cufflinks
   - scikit-learn

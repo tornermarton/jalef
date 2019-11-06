@@ -8,8 +8,8 @@ WORKDIR /
 COPY requirements.system /
 
 # Install system packages
-RUN apt-get update && pip install --upgrade pip
-RUN xargs apt-get install -y < requirements.system
+RUN apt -q update --fix-missing
+RUN xargs apt -q install -y < requirements.system
 
 # Create main app directory
 RUN mkdir /app
@@ -29,9 +29,9 @@ RUN echo "export VISIBLE=now" >> /etc/profile
 RUN echo 'root:nehezjelszo' | chpasswd
 
 # configure supervisor
-COPY docker/copy_files/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY copy_files/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-COPY docker/copy_files/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY copy_files/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Install Miniconda
@@ -48,9 +48,11 @@ RUN conda init bash
 # RUN pip install --trusted-host pypi.python.org -r ../requirements.txt
 
 # correct cufflinks imports (plotly.plotly deprecated)
-RUN sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/tools.py \
-    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/plotlytools.py \
-    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/__init__.py
+# RUN sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/tools.py \
+#    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/plotlytools.py \
+#    && sed -i -e 's/plotly\.plotly/chart_studio\.plotly/g' /usr/local/lib/python3.6/dist-packages/cufflinks/__init__.py
+
+COPY copy_files/bashrc_append.txt /root/copy_files/bashrc_append.txt
 
 EXPOSE 8888
 EXPOSE 6006

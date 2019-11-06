@@ -9,4 +9,6 @@ alias gerp=grep
 alias "cd."="cd .."
 alias cls=clear
 
-conda activate tensorflow_2
+cd /app
+
+conda activate tensorflow_1-14

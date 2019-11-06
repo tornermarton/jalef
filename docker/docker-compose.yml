@@ -14,8 +14,8 @@ services:
     user: $UID:$GID
     environment:
       - CUDA_VISIBLE_DEVICES=0
-      - USER_NAME: $HOME
+      - USER_NAME=$USER
     restart: unless-stopped
     volumes:
       - ..:/app
-      - $HOME/.ssh:/home/$USER
+      - $HOME/.ssh:/home/$USER/.ssh
