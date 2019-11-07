@@ -36,8 +36,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Install Miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-RUN bash Miniconda3-latest-Linux-x86_64.sh -b
-ENV PATH="/root/miniconda3/bin:${PATH}"
+RUN bash Miniconda3-latest-Linux-x86_64.sh -b -p /usr/miniconda3
+ENV PATH="/usr/miniconda3/bin:${PATH}"
 
 # build checkpoint
 COPY copy_files/environments /root/copy_files/environments
