@@ -1,10 +1,10 @@
 {
   "dataset": {
-    "path": "/app/data/reddit_top10/",
-    "name": "reddit",
+    "path": "/app/data/coursera_dataset_top90/",
+    "name": "coursera",
     "max_seq_len": 128,
-    "min_seq_len": 32,
-    "n_intents": 10
+    "min_seq_len": 64,
+    "n_intents": 90
   },
   "model": {
     "embedding": "bert",

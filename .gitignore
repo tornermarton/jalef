@@ -115,6 +115,9 @@ data/coursera_dataset_*/
 
 logs/weights/
 
+*.hdf5
+*.weights.hdf5
+
 /data/
 
 models/
