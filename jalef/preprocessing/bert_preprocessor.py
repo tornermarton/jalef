@@ -5,6 +5,8 @@ import tensorflow as tf
 from bert.tokenization import FullTokenizer
 import numpy as np
 
+from multiprocessing import Pool
+
 from jalef.preprocessing.preprocessor import Preprocessor
 
 
@@ -105,15 +107,16 @@ class BertPreprocessor(Preprocessor):
         :param texts: The sequences of texts.
         :return: The sequences of tokens, masks and segment ids.
         """
-
-        input_ids = np.empty([len(texts), self._max_seq_len], dtype=np.int64)
+        
         input_masks = np.empty([len(texts), self._max_seq_len], dtype=np.int64)
         segment_ids = np.empty([len(texts), self._max_seq_len], dtype=np.int64)
 
         # input_ids, input_masks, segment_ids = [], [], []
+        
+        input_ids, input_masks, segment_ids = zip(*Pool(processes=8).map(self.tokenize, texts))
 
-        for i, text in enumerate(texts):
-            input_ids[i], input_masks[i], segment_ids[i] = self.tokenize(text=text)
+        # for i, text in enumerate(texts):
+            # input_ids[i], input_masks[i], segment_ids[i] = self.tokenize(text=text)
             # input_id, input_mask, segment_id = self.tokenize(text=text)
             # input_ids.append(input_id)
             # input_masks.append(input_mask)
